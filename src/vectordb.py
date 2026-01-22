@@ -1,7 +1,11 @@
 import os
-import chromadb
 from typing import List, Dict, Any
-from sentence_transformers import SentenceTransformer
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+from chroma_client import ChromaDBClient
+from config import CHUNK_SIZE_DEFAULT, CHUNK_OVERLAP_DEFAULT
+from embeddings import initialize_embedding_model
 
 
 class VectorDB:
@@ -9,69 +13,46 @@ class VectorDB:
     A simple vector database wrapper using ChromaDB with HuggingFace embeddings.
     """
 
-    def __init__(self, collection_name: str = None, embedding_model: str = None):
+    def __init__(self, collection_name: str = None, chunk_size: int = CHUNK_SIZE_DEFAULT, chunk_overlap: int = CHUNK_OVERLAP_DEFAULT):
         """
         Initialize the vector database.
 
         Args:
             collection_name: Name of the ChromaDB collection
-            embedding_model: HuggingFace model name for embeddings
+            chunk_size: Approximate number of characters per chunk for text splitting
+            chunk_overlap: Number of characters to overlap between chunks
         """
-        self.collection_name = collection_name or os.getenv(
-            "CHROMA_COLLECTION_NAME", "rag_documents"
-        )
-        self.embedding_model_name = embedding_model or os.getenv(
-            "EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
-        )
 
-        # Initialize ChromaDB client
-        self.client = chromadb.PersistentClient(path="./chroma_db")
-
-        # Load embedding model
-        print(f"Loading embedding model: {self.embedding_model_name}")
-        self.embedding_model = SentenceTransformer(self.embedding_model_name)
-
-        # Get or create collection
-        self.collection = self.client.get_or_create_collection(
-            name=self.collection_name,
-            metadata={"description": "RAG document collection"},
+        # Initialize ChromaDB client and get or create collection
+        self.collection = ChromaDBClient().get_or_create_collection(
+            collection_name or os.getenv(
+                "CHROMA_COLLECTION_NAME", "rag_documents"
+            )
         )
 
-        print(f"Vector database initialized with collection: {self.collection_name}")
+        # Initialize embedding model with device detection
+        self.embedding_model = initialize_embedding_model()
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
 
-    def chunk_text(self, text: str, chunk_size: int = 500) -> List[str]:
+        print(f"Vector database initialized with collection: {self.collection.name}")
+
+    def chunk_text(self, text: str) -> List[str]:
         """
-        Simple text chunking by splitting on spaces and grouping into chunks.
+        Split text into chunks using recursive character splitting.
+        Uses the instance chunk_size and chunk_overlap configuration for optimal text splitting.
 
         Args:
             text: Input text to chunk
-            chunk_size: Approximate number of characters per chunk
-
         Returns:
             List of text chunks
         """
-        # TODO: Implement text chunking logic
-        # You have several options for chunking text - choose one or experiment with multiple:
-        #
-        # OPTION 1: Simple word-based splitting
-        #   - Split text by spaces and group words into chunks of ~chunk_size characters
-        #   - Keep track of current chunk length and start new chunks when needed
-        #
-        # OPTION 2: Use LangChain's RecursiveCharacterTextSplitter
-        #   - from langchain_text_splitters import RecursiveCharacterTextSplitter
-        #   - Automatically handles sentence boundaries and preserves context better
-        #
-        # OPTION 3: Semantic splitting (advanced)
-        #   - Split by sentences using nltk or spacy
-        #   - Group semantically related sentences together
-        #   - Consider paragraph boundaries and document structure
-        #
-        # Feel free to try different approaches and see what works best!
-
-        chunks = []
-        # Your implementation here
-
-        return chunks
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
+            separators=["\n\n", "\n", ". ", " ", ""]
+        )
+        return text_splitter.split_text(text)
 
     def add_documents(self, documents: List) -> None:
         """

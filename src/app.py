@@ -7,6 +7,7 @@ from vectordb import VectorDB
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
+from config import LLM_PROVIDERS, LLM_TEMPERATURE, ERROR_NO_API_KEY
 
 # Load environment variables
 load_dotenv()
@@ -35,15 +36,34 @@ class RAGAssistant:
     Supports OpenAI, Groq, and Google Gemini APIs.
     """
 
+    @staticmethod
+    def _initialize_llm():
+        """
+        Initialize the LLM by checking for available API keys.
+        Tries providers in priority order defined in config.
+        """
+        # Iterate through providers and use the first available one
+        for provider in LLM_PROVIDERS:
+            api_key = os.getenv(provider["api_key_env"])
+            if api_key:
+                model_name = os.getenv(provider["model_env"], provider["default_model"])
+                print(f"Using {provider['name']} model: {model_name}")
+
+                # Initialize LLM with provider-specific parameters
+                kwargs = {
+                    provider["api_key_param"]: api_key,
+                    "model": model_name,
+                    "temperature": LLM_TEMPERATURE,
+                }
+                return provider["class"](**kwargs)
+
+        # If no provider is available, raise an error
+        raise ValueError(ERROR_NO_API_KEY)
+
     def __init__(self):
         """Initialize the RAG assistant."""
         # Initialize LLM - check for available API keys in order of preference
         self.llm = self._initialize_llm()
-        if not self.llm:
-            raise ValueError(
-                "No valid API key found. Please set one of: "
-                "OPENAI_API_KEY, GROQ_API_KEY, or GOOGLE_API_KEY in your .env file"
-            )
 
         # Initialize vector database
         self.vector_db = VectorDB()
@@ -59,40 +79,6 @@ class RAGAssistant:
         self.chain = self.prompt_template | self.llm | StrOutputParser()
 
         print("RAG Assistant initialized successfully")
-
-    def _initialize_llm(self):
-        """
-        Initialize the LLM by checking for available API keys.
-        Tries OpenAI, Groq, and Google Gemini in that order.
-        """
-        # Check for OpenAI API key
-        if os.getenv("OPENAI_API_KEY"):
-            model_name = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-            print(f"Using OpenAI model: {model_name}")
-            return ChatOpenAI(
-                api_key=os.getenv("OPENAI_API_KEY"), model=model_name, temperature=0.0
-            )
-
-        elif os.getenv("GROQ_API_KEY"):
-            model_name = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
-            print(f"Using Groq model: {model_name}")
-            return ChatGroq(
-                api_key=os.getenv("GROQ_API_KEY"), model=model_name, temperature=0.0
-            )
-
-        elif os.getenv("GOOGLE_API_KEY"):
-            model_name = os.getenv("GOOGLE_MODEL", "gemini-2.0-flash")
-            print(f"Using Google Gemini model: {model_name}")
-            return ChatGoogleGenerativeAI(
-                google_api_key=os.getenv("GOOGLE_API_KEY"),
-                model=model_name,
-                temperature=0.0,
-            )
-
-        else:
-            raise ValueError(
-                "No valid API key found. Please set one of: OPENAI_API_KEY, GROQ_API_KEY, or GOOGLE_API_KEY in your .env file"
-            )
 
     def add_documents(self, documents: List) -> None:
         """
@@ -146,7 +132,7 @@ def main():
             if question.lower() == "quit":
                 done = True
             else:
-                result = assistant.query(question)
+                result = assistant.invoke(question)
                 print(result)
 
     except Exception as e:
