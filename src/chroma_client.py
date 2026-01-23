@@ -63,3 +63,12 @@ class ChromaDBClient:
             metadata=CHROMA_COLLECTION_METADATA,
         )
 
+    def delete_collection(self, collection_name: str) -> None:
+        """
+        Delete a ChromaDB collection.
+
+        Args:
+            collection_name: Name of the collection to delete
+        """
+        self.client.delete_collection(name=collection_name)
+        print(f"✓ Collection '{collection_name}' deleted from ChromaDB")

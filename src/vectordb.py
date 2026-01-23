@@ -48,19 +48,21 @@ class VectorDB:
         """
         Chunk documents into smaller pieces. Each chunk is paired with its metadata.
         Args:
-            documents: List of documents (strings or dicts with 'content', 'title', and 'filename')
+            documents: List of documents (strings or dicts with 'content', 'title', 'filename', and 'tags')
 
         Returns:
-            List of tuples containing chunk text and metadata dictionary with title and filename
+            List of tuples containing chunk text and metadata dictionary with title, filename, and tags
         """
         docs = documents if isinstance(documents, list) else [documents]
         chunks_with_metadata = [
             (chunk, {
                 'title': doc.get('title', ''),
-                'filename': doc.get('filename', '')
+                'filename': doc.get('filename', ''),
+                'tags': doc.get('tags', '')
             } if isinstance(doc, dict) else {
                 'title': '',
-                'filename': ''
+                'filename': '',
+                'tags': ''
             })
             for doc in docs
             for chunk in self.text_splitter.split_text(
@@ -84,7 +86,6 @@ class VectorDB:
 
     def _insert_chunks_into_db(self, chunks: list[tuple[str, dict]]):
         """Insert deduplicated chunks into the vector database."""
-
         deduplicated_chunks = self._filter_duplicate_chunks(chunks)
         if deduplicated_chunks:
             if len(deduplicated_chunks) < len(chunks):
@@ -101,6 +102,8 @@ class VectorDB:
                 metadatas=metadata,
             )
             print(f"✓ Added {len(deduplicated_chunks)} chunks to the vector database.")
+
+    # ...existing code...
 
     def _filter_duplicate_chunks(self, chunks: list[tuple[str, dict]]) -> list[tuple[str, dict]]:
         """

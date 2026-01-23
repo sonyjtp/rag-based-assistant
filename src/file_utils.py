@@ -21,6 +21,7 @@ def load_documents(folder: str, file_extns: str | tuple[str, ...] = ".txt") -> l
         - 'content': The document text content
         - 'filename': The source filename
         - 'title': The document title (extracted from first non-empty line)
+        - 'tags': The document tags (extracted from second line if present)
     """
     documents: list[dict[str, str]] = []
     for filename in os.listdir(folder):
@@ -29,13 +30,21 @@ def load_documents(folder: str, file_extns: str | tuple[str, ...] = ".txt") -> l
             continue
         try:
             for doc in TextLoader(os.path.join(folder, filename), encoding="utf-8").load():
-                # Extract title from first non-empty line
-                content_lines = doc.page_content.strip().split('\n')
-                title = next((line.strip() for line in content_lines if line.strip()), filename)
+                # Extract non-empty lines
+                content_lines = [line.strip() for line in doc.page_content.strip().split('\n') if line.strip()]
+
+                # Title is the first non-empty line
+                title = content_lines[0] if content_lines else filename
+
+                # Tags are extracted from the 2nd non-empty line (if it starts with "Tags:")
+                tags = ""
+                if len(content_lines) > 1 and content_lines[1].startswith("Tags:"):
+                    tags = content_lines[1].replace("Tags:", "").strip()
 
                 documents.append({
                     'filename': filename,
                     'title': title,
+                    'tags': tags,
                     'content': doc.page_content
                 })
         except IOError as e:

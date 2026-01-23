@@ -1,21 +1,22 @@
 Post-Quantum Cryptography
 
-Post-quantum cryptography refers to cryptographic algorithms designed to resist attacks from both classical and quantum computers. As quantum computing technology advances, current encryption methods based on the difficulty of factoring large numbers or computing discrete logarithms will become vulnerable to quantum attacks. Post-quantum cryptography seeks to develop and standardize new mathematical problems that remain computationally hard even for quantum computers, ensuring that sensitive data encrypted today remains secure in the future. This transition represents one of the most critical cybersecurity challenges of the 21st century.
+Tags: cryptography,quantum-computing,cybersecurity,encryption,lattice-based,nist,migration
+
+Post-quantum cryptography refers to cryptographic algorithms designed to resist attacks from both classical and quantum computers. As quantum computing technology advances, current encryption methods will become vulnerable. This transition represents one of the most critical cybersecurity challenges of the 21st century.
 
 Quantum Threats to Classical Cryptography
 
-Quantum computers exploit quantum phenomena such as superposition and entanglement to solve certain mathematical problems exponentially faster than classical computers. Shor's algorithm, a famous quantum algorithm, can break RSA and elliptic curve cryptography—the foundations of modern internet security—in polynomial time. This threat means that data encrypted with current public-key cryptography could be decrypted by sufficiently powerful quantum computers, a scenario known as "harvest now, decrypt later" where adversaries collect encrypted data today to decrypt when quantum computers become available.
+Quantum computers exploit quantum phenomena to solve certain mathematical problems exponentially faster than classical computers. Shor's algorithm can break RSA and elliptic curve cryptography—the foundations of modern internet security. This threat means data encrypted with current cryptography could be decrypted by sufficiently powerful quantum computers. Experts estimate cryptographically relevant quantum computers could emerge within 10-20 years.
 
 Post-Quantum Cryptographic Approaches
 
-Several promising mathematical approaches form the basis of post-quantum cryptography candidates. Lattice-based cryptography relies on the hardness of lattice problems, offering strong security guarantees and efficient implementations. Hash-based signatures use the security of cryptographic hash functions and provide proven security properties. Multivariate polynomial cryptography, code-based cryptography, and isogeny-based cryptography represent additional approaches being evaluated by standards organizations. Each approach offers different trade-offs between security, performance, and key sizes.
+Several promising approaches form the basis of post-quantum cryptography candidates. Lattice-based cryptography relies on the hardness of lattice problems. Hash-based signatures use the security of cryptographic hash functions. Code-based cryptography and isogeny-based cryptography represent additional approaches. Lattice-based schemes like CRYSTALS-Kyber are particularly promising due to their efficiency and security properties.
 
 NIST Standardization Efforts
 
-The National Institute of Standards and Technology (NIST) launched a competition in 2016 to identify post-quantum cryptographic algorithms suitable for standardization. After rigorous evaluation involving cryptographic experts worldwide, NIST has begun standardizing selected algorithms for public-key encryption, key establishment, and digital signatures. This standardization process ensures that new cryptographic standards will be widely adopted across government, industry, and critical infrastructure, providing interoperability and security guarantees.
+NIST launched a competition in 2016 to identify post-quantum cryptographic algorithms. After rigorous evaluation, NIST began standardizing selected algorithms for public-key encryption and digital signatures in 2022. This standardization ensures new cryptographic standards will be widely adopted, providing interoperability and security guarantees.
 
 Migration and Implementation Challenges
 
-Transitioning to post-quantum cryptography presents significant organizational and technical challenges. Legacy systems must be updated, and hybrid approaches combining classical and post-quantum algorithms provide interim security during the transition period. Organizations must inventory cryptographic systems, prioritize migration efforts for systems protecting long-term sensitive data, and coordinate updates across interconnected infrastructure. The migration process requires careful planning to maintain security while ensuring compatibility with existing systems and preventing disruption to critical services.
-
+Transitioning to post-quantum cryptography presents significant organizational and technical challenges. Legacy systems must be updated. Organizations must inventory cryptographic systems and prioritize migration efforts. Companies like Microsoft, Google, and Amazon are beginning to integrate post-quantum cryptography into their systems. Future challenges include managing performance overhead and coordinating a global transition.
 
