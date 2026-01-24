@@ -4,6 +4,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from llm_utils import initialize_llm
 from prompt_builder import build_system_prompts
 from vectordb import VectorDB
+from memory_manager import MemoryManager
+from config import RETRIEVAL_K_DEFAULT
 
 
 class RAGAssistant:
@@ -12,16 +14,19 @@ class RAGAssistant:
     Supports OpenAI, Groq, and Google Gemini APIs.
     """
 
-
     def __init__(self):
         """Initialize the RAG assistant."""
-
-
         self.llm = initialize_llm()
         print(f"✓ LLM : {self.llm.model_name}")
 
         # Initialize vector database
         self.vector_db = VectorDB()
+
+        # Initialize conversation memory
+        self.memory_manager = MemoryManager(llm=self.llm)
+        if self.memory_manager.memory:
+            print(f"✓ Memory manager initialized with strategy: {self.memory_manager.strategy}")
+
         self._build_chain()
 
         # TODO: Implement your RAG prompt template
@@ -54,18 +59,18 @@ class RAGAssistant:
         """
         self.vector_db.add_documents(documents)
 
-    def invoke(self, input: str, n_results: int = 3) -> str:
+    def invoke(self, query: str, n_results: int = RETRIEVAL_K_DEFAULT) -> str:
         """
         Query the RAG assistant.
 
         Args:
-            input: User's input
+            query: User's input
             n_results: Number of relevant chunks to retrieve
 
         Returns:
             String answer from the LLM based on retrieved context
         """
-        search_results = self.vector_db.search(query=input, n_results=n_results)
+        search_results = self.vector_db.search(query=query, n_results=n_results)
 
         # Extract documents from search results
         documents = search_results.get("documents", [])
@@ -73,6 +78,10 @@ class RAGAssistant:
 
         response = self.chain.invoke({
             "context": context,
-            "question": input
+            "question": query
         })
+
+        # Save conversation to memory manager
+        self.memory_manager.add_message(input_text=query, output_text=response)
+
         return response

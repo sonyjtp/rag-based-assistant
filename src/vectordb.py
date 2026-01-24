@@ -1,10 +1,9 @@
-import os
 from typing import Dict, Any
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from chroma_client import ChromaDBClient
-from config import CHUNK_SIZE_DEFAULT, CHUNK_OVERLAP_DEFAULT
+from config import CHUNK_SIZE_DEFAULT, CHUNK_OVERLAP_DEFAULT, COLLECTION_NAME_DEFAULT
 from embeddings import initialize_embedding_model
 
 
@@ -15,7 +14,7 @@ class VectorDB:
 
     def __init__(
             self,
-            collection_name: str = None,
+            collection_name: str = COLLECTION_NAME_DEFAULT,
             chunk_size: int = CHUNK_SIZE_DEFAULT,
             chunk_overlap: int = CHUNK_OVERLAP_DEFAULT,
     ):
@@ -29,11 +28,7 @@ class VectorDB:
         """
 
         # Initialize ChromaDB client and get or create collection
-        self.collection = ChromaDBClient().get_or_create_collection(
-            collection_name or os.getenv(
-                "CHROMA_COLLECTION_NAME", "rag_documents"
-            )
-        )
+        self.collection = ChromaDBClient().get_or_create_collection(collection_name)
         print(f"✓ Vector database collection {self.collection.name} ready for use")
 
         self.embedding_model = initialize_embedding_model()
@@ -87,6 +82,7 @@ class VectorDB:
     def _insert_chunks_into_db(self, chunks: list[tuple[str, dict]]):
         """Insert deduplicated chunks into the vector database."""
         deduplicated_chunks = self._filter_duplicate_chunks(chunks)
+
         if deduplicated_chunks:
             if len(deduplicated_chunks) < len(chunks):
                 print(f"✓ Deduplicated to {len(deduplicated_chunks)} chunks")
@@ -102,31 +98,43 @@ class VectorDB:
                 metadatas=metadata,
             )
             print(f"✓ Added {len(deduplicated_chunks)} chunks to the vector database.")
+        else:
+            print("⚠ No new chunks to add (all are duplicates)")
 
     # ...existing code...
 
     def _filter_duplicate_chunks(self, chunks: list[tuple[str, dict]]) -> list[tuple[str, dict]]:
         """
-        Filter out duplicate chunks that already exist in the database.
+        Filter out duplicate chunks.
+        Removes chunks that already exist in the database AND duplicates within the current batch.
 
         Args:
             chunks: List of tuples containing chunk text and metadata
 
         Returns:
-            List of new chunks that don't already exist in the database
+            List of new chunks that don't already exist in the database or batch
         """
+        # Get existing documents from the database
         existing_docs = self.collection.get()
         existing_texts = set(existing_docs.get("documents", []))
 
+        # Filter out chunks that already exist in database
+        # Normalize text the same way as in _insert_chunks_into_db
         new_chunks = [
-            (text, meta) for text, meta in chunks
-            if text not in existing_texts
+            chunk for chunk in chunks
+            if chunk[0].strip().lstrip('.,;:!? ') not in existing_texts
         ]
 
-        if not new_chunks:
-            print("⚠ No new chunks to add to the database after filtering duplicates.")
-            return []
-        return new_chunks
+        # Also remove duplicates within the current batch
+        seen = set()
+        final_chunks = []
+        for chunk_text, metadata in new_chunks:
+            normalized_text = chunk_text.strip().lstrip('.,;:!? ')
+            if normalized_text not in seen:
+                seen.add(normalized_text)
+                final_chunks.append((chunk_text, metadata))
+
+        return final_chunks
 
     def search(self, query: str, n_results: int = 5) -> Dict[str, Any]:
         """

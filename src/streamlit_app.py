@@ -102,8 +102,7 @@ if 'assistant' not in st.session_state:
 if not st.session_state.initialization_attempted:
     st.session_state.initialization_attempted = True
     try:
-        status = st.status("Loading documents and initializing assistant...", expanded=True)
-        # Load documents
+        # Load documents silently without displaying status
         documents = load_documents(folder=DATA_DIR, file_extns=".txt")
 
         # Initialize the RAG assistant
@@ -111,14 +110,10 @@ if not st.session_state.initialization_attempted:
         st.session_state.assistant.add_documents(documents)
         st.session_state.documents_loaded = True
         st.session_state.initialized = True
-        status.update(label="✅ RAG Assistant initialized!", state="complete")
     except Exception as e:
         st.session_state.initialized = False
-        st.error(f"Error initializing assistant: {e}")
-        st.info("Make sure you have set up your .env file with at least one API key:")
-        st.info("- OPENAI_API_KEY (OpenAI GPT models)")
-        st.info("- GROQ_API_KEY (Groq Llama models)")
-        st.info("- GOOGLE_API_KEY (Google Gemini models)")
+        print(f"❌ Error initializing assistant: {e}")
+        st.error("I'm sorry, an error occurred while initializing the assistant. Please try again.")
 
 # Sidebar configuration
 with st.sidebar:
@@ -152,33 +147,34 @@ st.divider()
 
 # Chat interface
 if st.session_state.initialized:
-    # Display chat history
-    st.subheader("Chat History")
+    # Display chat history only after first message
+    if st.session_state.chat_history:
+        st.subheader("Chat History")
 
-    chat_container = st.container()
+        chat_container = st.container()
 
-    with chat_container:
-        for message in st.session_state.chat_history:
-            if message["role"] == "user":
-                st.markdown(f"""
-                    <div class="chat-message user-message">
-                        <div>
-                            <strong>You:</strong><br/>
-                            {message["content"]}
+        with chat_container:
+            for message in st.session_state.chat_history:
+                if message["role"] == "user":
+                    st.markdown(f"""
+                        <div class="chat-message user-message">
+                            <div>
+                                <strong>You:</strong><br/>
+                                {message["content"]}
+                            </div>
                         </div>
-                    </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                    <div class="chat-message assistant-message">
-                        <div>
-                            <strong>Assistant:</strong><br/>
-                            {message["content"]}
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                        <div class="chat-message assistant-message">
+                            <div>
+                                <strong>Assistant:</strong><br/>
+                                {message["content"]}
+                            </div>
                         </div>
-                    </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
 
-    st.divider()
+        st.divider()
 
     # Input area
     st.subheader("Ask a Question")
@@ -239,7 +235,9 @@ if st.session_state.initialized:
             st.rerun()
         except Exception as e:
             status.update(label="❌ Error generating response", state="error")
-            st.error(f"Error: {e}")
+            print(f"❌ Error generating response: {e}")
+            st.error("I'm sorry, an error occurred while processing your question. Please try again.")
 else:
-    st.info("⏳ RAG Assistant is initializing... Please wait a moment and refresh the page if needed.")
+    if not st.session_state.initialization_attempted:
+        st.info("⏳ RAG Assistant is initializing... Please wait a moment and refresh the page if needed.")
 
