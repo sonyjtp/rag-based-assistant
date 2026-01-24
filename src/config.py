@@ -18,11 +18,10 @@ CHROMA_DATABASE_ENV = "CHROMA_DATABASE"
 CHROMA_TENANT_ENV = "CHROMA_TENANT"
 
 # Chunking Configuration
-CHUNK_OVERLAP_DEFAULT = int(os.getenv("CHUNK_OVERLAP", "100"))
-CHUNK_SIZE_DEFAULT = int(os.getenv("CHUNK_SIZE", "500"))
+CHUNK_OVERLAP_DEFAULT = 100
+CHUNK_SIZE_DEFAULT = 500
 
-# Default Retrieval Configuration
-DEFAULT_RETRIEVAL_K = 3
+COLLECTION_NAME_DEFAULT = "rag_documents"
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(ROOT_DIR, os.getenv("DATA_DIR", "data"))
@@ -65,13 +64,14 @@ LLM_PROVIDERS = [
     },
 ]
 
-MEMORY_STRATEGY = "summarization"  # Options: "conversation_buffer_memory", "none"
-MEMORY_STRATEGY_MAX_TOKENS = 1000
+MEMORY_STRATEGIES_FPATH = os.path.join(ROOT_DIR, "config", "memory_strategies.yaml")
+MEMORY_STRATEGY = "summarization_sliding_window"  # Options: summarization_sliding_window, summarization, conversation_buffer_memory, none
 
 PROMPT_CONFIG_FPATH = os.path.join(ROOT_DIR, "config", "prompt-config.yaml")
 PROMPT_CONFIG_NAME = "rag-assistant-system-prompt-formal"
 
-TOP_K=5
+# Default Retrieval Configuration
+RETRIEVAL_K_DEFAULT = 3
 
 # Vector Database Configuration
 VECTOR_DB_COLLECTION_NAME = "documents"
