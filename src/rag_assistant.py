@@ -42,10 +42,7 @@ class RAGAssistant:
             logger.info(
                 f"Reasoning strategy loaded: {self.reasoning_strategy.get_strategy_name()}"
             )
-        except (
-            AttributeError,
-            ValueError,
-        ) as e:  # pylint: disable=broad-exception-caught
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error(f"Error loading reasoning strategy: {e}")
             self.reasoning_strategy = None
 
@@ -53,7 +50,19 @@ class RAGAssistant:
 
     def _build_chain(self):
         """Build the prompt template and LLM chain."""
-        system_prompts = build_system_prompts()
+        try:
+            system_prompts = build_system_prompts()
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.warning(
+                f"Could not build system prompts: {e}. Using default prompts."
+            )
+            # Use a minimal default prompt if system prompts fail to build
+            system_prompts = [
+                "You are a helpful AI assistant.",
+                "Answer questions based only on the provided documents.",
+                "If you cannot find the answer in the documents, say so.",
+            ]
+
         self.prompt_template = ChatPromptTemplate.from_messages(
             [
                 ("system", "\n".join(system_prompts)),
@@ -109,10 +118,19 @@ class RAGAssistant:
         else:
             flat_docs = documents
 
+        # Flatten distances if they are nested lists
+        flat_distances = []
+        if distances:
+            if isinstance(distances[0], list):
+                flat_distances = [dist for dist_list in distances for dist in dist_list]
+            else:
+                flat_distances = distances
+
         # For meta-questions, use results even with lower similarity
         # For regular questions, require higher similarity (distance <= threshold)
         if not is_meta_question and (
-            not flat_docs or (distances and distances[0] > DISTANCE_THRESHOLD_DEFAULT)
+            not flat_docs
+            or (flat_distances and flat_distances[0] > DISTANCE_THRESHOLD_DEFAULT)
         ):
             return (
                 "I couldn't find information in my knowledge base that closely matches your question. "

@@ -43,7 +43,10 @@ if not st.session_state.initialization_attempted:
     except Exception as e:  # pylint: disable=broad-exception-caught
         st.session_state.initialized = False
         logger.error(f"Error initializing assistant: {e}")
-        st.error("Error initializing assistant. Please try again.")
+        st.error(
+            "Unable to initialize the assistant at this time. Please refresh the page "
+            "and try again. If the problem persists, please contact support."
+        )
 
 # Sidebar configuration
 with st.sidebar:

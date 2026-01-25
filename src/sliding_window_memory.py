@@ -56,18 +56,13 @@ class SlidingWindowMemory:
             self.summary = (
                 response.content if hasattr(response, "content") else str(response)
             )
-        except (
-            AttributeError,
-            ValueError,
-        ) as e:  # pylint: disable=broad-exception-caught
-            logger.error(
-                f"Error summarizing window: {e}",
-            )
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error(f"Error summarizing window: {e}")
             self.summary = window_text
 
         # Clear window for next iteration
         self.messages.clear()
-        logger.info(f"Memory window shifted (summarized  {self.window_size} messages)")
+        logger.info(f"Memory window shifted (summarized {self.window_size} messages)")
 
     def load_memory_variables(self) -> dict:  # pylint: disable=unused-argument
         """Get current memory state including summary and recent messages."""

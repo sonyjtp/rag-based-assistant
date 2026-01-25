@@ -4,8 +4,8 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-191%20passing-brightgreen.svg)]()
-[![Code Coverage](https://img.shields.io/badge/coverage-97.51%25-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-175%20passing-brightgreen.svg)]()
+[![Code Coverage](https://img.shields.io/badge/coverage-84.80%25-yellow.svg)]()
 [![Pylint](https://github.com/sonyjtp/rag-based-assistant/actions/workflows/pylint.yml/badge.svg)](https://github.com/sonyjtp/rag-based-assistant/actions/workflows/pylint.yml)
 
 [Quick Start](#-quick-start) • [Features](#-features) • [Installation](#-installation) • [Contributing](#-contributing)

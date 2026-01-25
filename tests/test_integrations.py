@@ -16,10 +16,22 @@ from src.vectordb import VectorDB
 # ============================================================================
 
 
-class TestChromeDBClientInitialization:
+@pytest.fixture
+def chroma_mocks():
+    """Fixture providing mocked ChromaDB client components."""
+    with patch("src.chroma_client.chromadb.CloudClient") as mock_cloud_client:
+        mock_client_instance = MagicMock()
+        mock_cloud_client.return_value = mock_client_instance
+        yield {
+            "cloud_client": mock_cloud_client,
+            "client_instance": mock_client_instance,
+        }
+
+
+# pylint: disable=redefined-outer-name
+class TestChromaDBClientInitialization:
     """Test ChromaDB client initialization."""
 
-    @patch("src.chroma_client.chromadb.CloudClient")
     @patch.dict(
         "os.environ",
         {
@@ -28,20 +40,19 @@ class TestChromeDBClientInitialization:
             "CHROMA_DATABASE": "test-db",
         },
     )
-    def test_chroma_client_init(self, mock_cloud_client):
+    def test_chroma_client_init(self, chroma_mocks):
         """Test ChromaDB client initialization with environment variables."""
-        mock_client_instance = MagicMock()
-        mock_cloud_client.return_value = mock_client_instance
-
         client = ChromaDBClient()
 
         # Verify CloudClient was created with correct parameters
-        mock_cloud_client.assert_called_once()
+        chroma_mocks["cloud_client"].assert_called_once_with(
+            api_key="test-key", tenant="test-tenant", database="test-db"
+        )
         assert client.api_key == "test-key"
         assert client.tenant == "test-tenant"
         assert client.database == "test-db"
+        assert client.client == chroma_mocks["client_instance"]
 
-    @patch("src.chroma_client.chromadb.CloudClient")
     @patch.dict(
         "os.environ",
         {
@@ -50,21 +61,45 @@ class TestChromeDBClientInitialization:
             "CHROMA_DATABASE": "test-db",
         },
     )
-    def test_get_or_create_collection(self, mock_cloud_client):
+    def test_initialize_client_method(self, chroma_mocks):
+        """Test _initialize_client method creates CloudClient correctly."""
+        client = ChromaDBClient()
+
+        # Verify _initialize_client was called during __init__
+        assert chroma_mocks["cloud_client"].called
+        # Verify the returned client is the mocked instance
+        assert client.client is chroma_mocks["client_instance"]
+
+    @patch.dict(
+        "os.environ",
+        {
+            "CHROMA_API_KEY": "test-key",
+            "CHROMA_TENANT": "test-tenant",
+            "CHROMA_DATABASE": "test-db",
+        },
+    )
+    def test_get_or_create_collection(self, chroma_mocks):
         """Test getting or creating a ChromaDB collection."""
         mock_collection = MagicMock()
-        mock_client_instance = MagicMock()
-        mock_client_instance.get_or_create_collection.return_value = mock_collection
-        mock_cloud_client.return_value = mock_client_instance
+        chroma_mocks[
+            "client_instance"
+        ].get_or_create_collection.return_value = mock_collection
 
         client = ChromaDBClient()
         result = client.get_or_create_collection("test_collection")
 
-        # Verify get_or_create_collection was called
-        mock_client_instance.get_or_create_collection.assert_called_once()
+        # Verify get_or_create_collection was called with correct parameters
+        chroma_mocks[
+            "client_instance"
+        ].get_or_create_collection.assert_called_once_with(
+            name="test_collection",
+            metadata={
+                "hnsw:space": "cosine",
+                "description": "RAG document collection",
+            },
+        )
         assert result == mock_collection
 
-    @patch("src.chroma_client.chromadb.CloudClient")
     @patch.dict(
         "os.environ",
         {
@@ -73,31 +108,29 @@ class TestChromeDBClientInitialization:
             "CHROMA_DATABASE": "test-db",
         },
     )
-    def test_delete_collection(self, mock_cloud_client):
+    def test_delete_collection(self, chroma_mocks):
         """Test deleting a ChromaDB collection."""
-        mock_client_instance = MagicMock()
-        mock_cloud_client.return_value = mock_client_instance
-
         client = ChromaDBClient()
         client.delete_collection("test_collection")
 
-        # Verify delete_collection was called
-        mock_client_instance.delete_collection.assert_called_once_with(
+        # Verify delete_collection was called with correct parameters
+        chroma_mocks["client_instance"].delete_collection.assert_called_once_with(
             name="test_collection"
         )
 
-    @patch("src.chroma_client.chromadb.CloudClient")
     @patch.dict("os.environ", {}, clear=True)
-    def test_chroma_client_missing_env_vars(self, mock_cloud_client):
+    def test_chroma_client_missing_env_vars(self, chroma_mocks):
         """Test ChromaDB client handles missing environment variables."""
-        mock_cloud_client.return_value = MagicMock()
-
         client = ChromaDBClient()
 
         # Should create client even with None values
         assert client.api_key is None
         assert client.tenant is None
         assert client.database is None
+        # But should still call CloudClient with None values
+        chroma_mocks["cloud_client"].assert_called_once_with(
+            api_key=None, tenant=None, database=None
+        )
 
 
 # ============================================================================
@@ -105,7 +138,8 @@ class TestChromeDBClientInitialization:
 # ============================================================================
 
 
-class TestInitializeLLM:
+# pylint: disable=redefined-outer-name
+class TestLLMInitialization:
     """Test LLM initialization utility."""
 
     @patch.dict("os.environ", {"GROQ_API_KEY": "groq-key"})
@@ -209,9 +243,9 @@ class TestInitializeLLM:
 # ============================================================================
 
 
-# pylint: disable=protected-access, disable=too-few-public-methods
-class TestVectorDBInitialization:
-    """Test VectorDB initialization."""
+# pylint: disable=protected-access, disable=too-few-public-methods, redefined-outer-name
+class TestVectorDBCore:
+    """Test VectorDB initialization, chunking, and document operations."""
 
     @patch("src.vectordb.ChromaDBClient")
     @patch("src.vectordb.initialize_embedding_model")
@@ -229,10 +263,6 @@ class TestVectorDBInitialization:
         assert vdb.collection == mock_collection
         assert vdb.embedding_model == mock_embedding_model
         assert vdb.text_splitter is not None
-
-
-class TestVectorDBChunking:
-    """Test document chunking in VectorDB."""
 
     @patch("src.vectordb.ChromaDBClient")
     @patch("src.vectordb.initialize_embedding_model")
@@ -285,13 +315,9 @@ class TestVectorDBChunking:
         # Should return chunks with metadata
         assert isinstance(chunks, list)
         assert len(chunks) > 0
-        for chunk, metadata in chunks:
+        for _chunk, metadata in chunks:
             assert metadata["title"] == "Test Title"
             assert metadata["filename"] == "test.txt"
-
-
-class TestVectorDBAddDocuments:
-    """Test adding documents to VectorDB."""
 
     @patch("src.vectordb.ChromaDBClient")
     @patch("src.vectordb.initialize_embedding_model")
@@ -346,9 +372,58 @@ class TestVectorDBAddDocuments:
         # Verify collection.add was called
         assert mock_collection.add.called
 
+    @patch("src.vectordb.ChromaDBClient")
+    @patch("src.vectordb.initialize_embedding_model")
+    def test_filter_duplicate_chunks(self, mock_embedding, mock_chroma):
+        """Test filtering duplicate chunks."""
+        mock_collection = MagicMock()
+        mock_collection.get.return_value = {"documents": ["existing doc"]}
+        mock_chroma.return_value.get_or_create_collection.return_value = mock_collection
+        mock_embedding_model = MagicMock()
+        mock_embedding_model.model_name = "test-model"
+        mock_embedding.return_value = mock_embedding_model
+
+        vdb = VectorDB()
+
+        # Test deduplication
+        chunks = [
+            ("new chunk 1", {"title": "T1"}),
+            ("existing doc", {"title": "T2"}),
+            ("new chunk 1", {"title": "T3"}),  # Duplicate in batch
+        ]
+
+        filtered = vdb._filter_duplicate_chunks(chunks)
+
+        # Should have 1 chunk (existing removed, duplicate in batch removed)
+        assert len(filtered) == 1
+        assert filtered[0][0] == "new chunk 1"
+
+    @patch("src.vectordb.ChromaDBClient")
+    @patch("src.vectordb.initialize_embedding_model")
+    def test_no_duplicate_chunks(self, mock_embedding, mock_chroma):
+        """Test when there are no duplicate chunks."""
+        mock_collection = MagicMock()
+        mock_collection.get.return_value = {"documents": []}
+        mock_chroma.return_value.get_or_create_collection.return_value = mock_collection
+        mock_embedding_model = MagicMock()
+        mock_embedding_model.model_name = "test-model"
+        mock_embedding.return_value = mock_embedding_model
+
+        vdb = VectorDB()
+
+        chunks = [
+            ("chunk 1", {"title": "T1"}),
+            ("chunk 2", {"title": "T2"}),
+        ]
+
+        filtered = vdb._filter_duplicate_chunks(chunks)
+
+        # All chunks should be kept
+        assert len(filtered) == 2
+
 
 class TestVectorDBSearch:
-    """Test searching in VectorDB."""
+    """Test VectorDB search and error handling."""
 
     @patch("src.vectordb.ChromaDBClient")
     @patch("src.vectordb.initialize_embedding_model")
@@ -401,70 +476,6 @@ class TestVectorDBSearch:
         assert results["documents"] == []
         assert results["metadatas"] == []
         assert results["distances"] == []
-
-
-class TestVectorDBDeduplication:
-    """Test duplicate chunk filtering in VectorDB."""
-
-    @patch("src.vectordb.ChromaDBClient")
-    @patch("src.vectordb.initialize_embedding_model")
-    def test_filter_duplicate_chunks(self, mock_embedding, mock_chroma):
-        """Test filtering duplicate chunks."""
-        mock_collection = MagicMock()
-        mock_collection.get.return_value = {"documents": ["existing doc"]}
-        mock_chroma.return_value.get_or_create_collection.return_value = mock_collection
-        mock_embedding_model = MagicMock()
-        mock_embedding_model.model_name = "test-model"
-        mock_embedding.return_value = mock_embedding_model
-
-        vdb = VectorDB()
-
-        # Test deduplication
-        chunks = [
-            ("new chunk 1", {"title": "T1"}),
-            ("existing doc", {"title": "T2"}),
-            ("new chunk 1", {"title": "T3"}),  # Duplicate in batch
-        ]
-
-        filtered = vdb._filter_duplicate_chunks(chunks)
-
-        # Should have 1 chunk (existing removed, duplicate in batch removed)
-        assert len(filtered) == 1
-        assert filtered[0][0] == "new chunk 1"
-
-    @patch("src.vectordb.ChromaDBClient")
-    @patch("src.vectordb.initialize_embedding_model")
-    def test_no_duplicate_chunks(self, mock_embedding, mock_chroma):
-        """Test when there are no duplicate chunks."""
-        mock_collection = MagicMock()
-        mock_collection.get.return_value = {"documents": []}
-        mock_chroma.return_value.get_or_create_collection.return_value = mock_collection
-        mock_embedding_model = MagicMock()
-        mock_embedding_model.model_name = "test-model"
-        mock_embedding.return_value = mock_embedding_model
-
-        vdb = VectorDB()
-
-        chunks = [
-            ("chunk 1", {"title": "T1"}),
-            ("chunk 2", {"title": "T2"}),
-        ]
-
-        filtered = vdb._filter_duplicate_chunks(chunks)
-
-        # All chunks should be kept
-        assert len(filtered) == 2
-
-
-# ============================================================================
-# VECTORDB SEARCH ERROR HANDLING TESTS
-# ============================================================================
-
-
-class TestVectorDBSearchErrorHandling:
-    """Test error handling in VectorDB search method."""
-
-    # pylint: disable=missing-function-docstring
 
     @patch("src.vectordb.ChromaDBClient")
     @patch("src.vectordb.initialize_embedding_model")

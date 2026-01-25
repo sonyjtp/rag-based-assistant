@@ -1,5 +1,7 @@
+-r requirements-test.txt
+
+# Development tools
 pre-commit
 black
 isort
 pylint
-pytest-cov

@@ -57,7 +57,7 @@ def build_system_prompts() -> list[str]:
             logger.warning(
                 f"Reasoning strategy {config.REASONING_STRATEGY} is disabled."
             )
-    except (AttributeError, ValueError) as e:  # pylint: disable=broad-exception-caught
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.warning(f"Could not load reasoning strategy: {e}")
 
     logger.info("System prompts built successfully")

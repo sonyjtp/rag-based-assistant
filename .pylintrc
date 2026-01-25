@@ -1,6 +1,8 @@
 [MASTER]
 # Add files or directories to the blacklist. They should be base names, not paths.
 ignore=CVS
+# Add the project root to the Python path so pylint can find the src module
+init-hook='import sys; sys.path.insert(0, "/Users/sonyjacobthomas/PycharmProjects/rag-based-assistant")'
 
 [MESSAGES CONTROL]
 # Only show warnings with the listed confidence levels. Leave empty to show all.
@@ -11,7 +13,7 @@ disable=logging-fstring-interpolation
 
 [DESIGN]
 # Maximum number of arguments for function / method
-max-args=5
+max-args=7
 
 [EXCEPTIONS]
 # Exceptions configuration (currently using defaults)

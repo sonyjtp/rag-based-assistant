@@ -65,9 +65,9 @@ def update_readme_coverage(
         # Determine badge color based on coverage level
         if coverage_percent >= 90:
             color = "brightgreen"
-        elif coverage_percent >= 80:
+        elif coverage_percent >= 85:
             color = "yellowgreen"
-        elif coverage_percent >= 70:
+        elif coverage_percent >= 75:
             color = "yellow"
         elif coverage_percent >= 60:
             color = "orange"
