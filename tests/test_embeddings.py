@@ -69,16 +69,19 @@ class TestEmbeddingModelInitialization:
         assert call_kwargs['model_kwargs']['device'] == 'cpu'
         assert result == mock_embedding_instance
 
-    @patch.dict('os.environ', {'VECTOR_DB_EMBEDDING_MODEL': 'custom-model-name'})
+    @patch('src.embeddings.os.getenv')
     @patch('src.embeddings.HuggingFaceEmbeddings')
     @patch('src.embeddings.torch.cuda.is_available')
     @patch('src.embeddings.torch.backends.mps.is_available')
-    def test_initialize_with_custom_model(self, mock_mps_available, mock_cuda_available, mock_embeddings):
+    def test_initialize_with_custom_model(self, mock_mps_available, mock_cuda_available, mock_embeddings, mock_getenv):
         """Test initialization with custom model from environment variable."""
         mock_cuda_available.return_value = False
         mock_mps_available.return_value = False
         mock_embedding_instance = MagicMock()
         mock_embeddings.return_value = mock_embedding_instance
+
+        # Mock os.getenv to return custom model name
+        mock_getenv.return_value = 'custom-model-name'
 
         result = initialize_embedding_model()
 
