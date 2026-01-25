@@ -163,6 +163,17 @@ class VectorDB:
         distances = results.get("distances", [[]])[0] if results.get("distances") else []
         ids = results.get("ids", [[]])[0] if results.get("ids") else []
 
+        # Log debug information about top k matches and cosine similarity
+        logger.debug(f"Search query: {query}")
+        logger.debug(f"Retrieved {len(documents)} results")
+
+        for i, (doc_id, distance, metadata) in enumerate(zip(ids, distances, metadatas), 1):
+            # Convert distance to cosine similarity (1 - distance)
+            cosine_similarity = 1 - distance
+            title = metadata.get("title", "N/A")
+            filename = metadata.get("filename", "N/A")
+            logger.debug(f"  Result {i}: {doc_id} | Similarity: {cosine_similarity:.4f} | Title: {title} | File: {filename}")
+
         return {
             "documents": documents,
             "metadatas": metadatas,

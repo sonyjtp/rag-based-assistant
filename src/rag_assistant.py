@@ -5,6 +5,7 @@ from llm_utils import initialize_llm
 from prompt_builder import build_system_prompts
 from vectordb import VectorDB
 from memory_manager import MemoryManager
+from reasoning_strategy_loader import ReasoningStrategyLoader
 from config import RETRIEVAL_K_DEFAULT
 from logger import logger
 
@@ -27,6 +28,14 @@ class RAGAssistant:
         self.memory_manager = MemoryManager(llm=self.llm)
         if self.memory_manager.memory:
             logger.info(f"Memory manager initialized with strategy: {self.memory_manager.strategy}")
+
+        # Initialize reasoning strategy
+        try:
+            self.reasoning_strategy = ReasoningStrategyLoader()
+            logger.info(f"Reasoning strategy loaded: {self.reasoning_strategy.get_strategy_name()}")
+        except Exception as e:
+            logger.error(f"Error loading reasoning strategy: {e}")
+            self.reasoning_strategy = None
 
         self._build_chain()
 
@@ -74,8 +83,15 @@ class RAGAssistant:
         search_results = self.vector_db.search(query=query, n_results=n_results)
 
         # Extract documents from search results
+        # Documents are returned as nested lists, so flatten them
         documents = search_results.get("documents", [])
-        context = "\n".join(documents)
+        if documents and isinstance(documents[0], list):
+            # Flatten nested list of documents
+            flat_docs = [doc for doc_list in documents for doc in doc_list]
+        else:
+            flat_docs = documents
+
+        context = "\n".join(flat_docs) if flat_docs else ""
 
         response = self.chain.invoke({
             "context": context,
