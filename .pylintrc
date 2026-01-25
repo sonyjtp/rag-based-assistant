@@ -1,6 +1,6 @@
 [MASTER]
 # Add files or directories to the blacklist. They should be base names, not paths.
-ignore=CVS
+ignore=CVS,update_coverage.py
 # Add the project root to the Python path so pylint can find the src module
 init-hook='import sys; sys.path.insert(0, "/Users/sonyjacobthomas/PycharmProjects/rag-based-assistant")'
 

@@ -65,6 +65,7 @@ def memory_patches():
     return MemoryPatchesContext()
 
 
+# pylint: disable=redefined-outer-name
 class TestMemoryManager:
     """Comprehensive tests for MemoryManager initialization, message handling, and operations."""
 
@@ -85,7 +86,7 @@ class TestMemoryManager:
         strategy,
         _config_key,
         mock_llm,
-        memory_patches,  # pylint: disable=redefined-outer-name
+        memory_patches,
     ):
         """Test MemoryManager initialization with different available strategies."""
         memory_patches.set_strategy(strategy)

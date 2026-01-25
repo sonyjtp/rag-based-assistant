@@ -24,7 +24,7 @@ repos:
     rev: 7.0.0
     hooks:
       - id: flake8
-        args: [ "--max-line-length=120", "--extend-ignore=E203,W503" ]
+        args: [ "--max-line-length=120", "--extend-ignore=E203,W503", "--exclude=update_coverage.py" ]
 
   - repo: https://github.com/pycqa/pylint
     rev: v3.0.3
@@ -47,3 +47,19 @@ repos:
           "loguru",
           "streamlit"
         ]
+
+  # Run tests before commit - fails the commit if tests fail
+  - repo: local
+    hooks:
+      - id: pytest-check
+        name: pytest
+        entry: pytest tests/ --cov=src --cov-report=term-missing --cov-report=html --cov-report=xml --cov-fail-under=90
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+
+      # Report coverage status (does not modify files)
+      # Note: Removed from commit stage to prevent file modification conflicts
+      # To run manually: python update_coverage.py

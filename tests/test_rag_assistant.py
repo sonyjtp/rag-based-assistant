@@ -45,7 +45,9 @@ def mock_components():
 class TestRAGAssistantInitialization:
     """Test RAGAssistant initialization and setup."""
 
-    def test_initialization_success(self, _mock_components):
+    def test_initialization_success(
+        self, mock_components
+    ):  # pylint: disable=unused-argument
         """Test successful initialization of RAGAssistant."""
         assistant = RAGAssistant()
 
@@ -93,7 +95,7 @@ class TestRAGAssistantInitialization:
         mock_components["reasoning"].assert_called_once()
         assert assistant.reasoning_strategy is not None
 
-    def test_chain_building(self, _mock_components):
+    def test_chain_building(self, mock_components):  # pylint: disable=unused-argument
         """Test that prompt template and chain are built correctly."""
         assistant = RAGAssistant()
 
@@ -105,6 +107,20 @@ class TestRAGAssistantInitialization:
 class TestRAGAssistantAddDocuments:
     """Test document addition functionality."""
 
+    @pytest.mark.parametrize(
+        "documents,_doc_type",
+        [
+            (["Document 1", "Document 2", "Document 3"], "string_list"),
+            (
+                [
+                    {"title": "Doc1", "content": "Content1"},
+                    {"title": "Doc2", "content": "Content2"},
+                ],
+                "dict_list",
+            ),
+            ([], "empty_list"),
+        ],
+    )
     def test_add_documents(
         self,
         mock_components,
