@@ -1,0 +1,157 @@
+reasoning_strategies:
+
+  chain_of_thought:
+    name: "Chain-of-Thought (CoT)"
+    description: "Model explains step-by-step reasoning before providing the final answer. Useful for complex problems requiring logical deduction."
+    enabled: true
+    prompt_instructions:
+      - "Think through your answer step-by-step before providing the final response."
+      - "First, identify the key information relevant to the question."
+      - "Then, work through the logical steps needed to answer."
+      - "Finally, provide your complete answer with clear reasoning."
+    example_prefix: "Let me think through this step by step:"
+    use_cases:
+      - "Complex multi-step questions"
+      - "Questions requiring logical deduction"
+      - "Mathematical or analytical problems"
+
+  self_consistency:
+    name: "Self-Consistency"
+    description: "Generate multiple reasoning paths and select the most consistent or common answer. Improves reliability and accuracy."
+    enabled: false
+    prompt_instructions:
+      - "Consider this question from multiple angles."
+      - "Provide your best reasoning path to the answer."
+    example_prefix: "Based on my analysis from multiple perspectives:"
+    use_cases:
+      - "Ambiguous questions"
+      - "Questions with multiple valid interpretations"
+      - "When high confidence is needed"
+    parameters:
+      num_paths: 3
+      selection_method: "majority_vote"
+
+  few_shot_prompting:
+    name: "Few-Shot Prompting"
+    description: "Provides examples in the prompt to guide the model's response format and reasoning style."
+    enabled: true
+    parameters:
+      num_examples: 2
+      example_format: "question_answer_pair"
+    examples:
+      - question: "What are the main characteristics of quantum cryptography?"
+        answer: "Quantum cryptography uses quantum mechanics principles to secure information. Key characteristics include: (1) Quantum key distribution (QKD) protocols like BB84, (2) Detection of eavesdropping through quantum state disturbance, (3) Provable security based on physics laws rather than computational complexity."
+
+      - question: "Tell me more about quantum cryptography applications."
+        answer: "Quantum cryptography has several practical applications: (1) Secure government and military communications, (2) Financial institution transactions, (3) Research institution data protection, (4) Emerging quantum internet infrastructure for unhackable networks."
+    use_cases:
+      - "Establishing consistent output format"
+      - "Teaching the model a specific style"
+      - "Demonstrating desired level of detail"
+
+  structured_prompting:
+    name: "Structured Prompting"
+    description: "Uses templates and format specifications to ensure consistent, parseable outputs."
+    enabled: true
+    prompt_instructions:
+      - "Format your answer according to this structure:"
+      - "1. Direct answer"
+      - "2. Supporting details (2-3 bullet points)"
+      - "3. Related topics for exploration"
+    output_format:
+      type: "markdown"
+      max_length: "5 lines"
+      use_bullets: true
+      include_related_topics: true
+    use_cases:
+      - "Ensuring consistency across responses"
+      - "Structured data extraction"
+      - "Multi-part answers"
+
+  metacognitive_prompting:
+    name: "Metacognitive Prompting"
+    description: "Asks the model to reflect on its confidence, limitations, and uncertainty. Promotes honesty and awareness of boundaries."
+    enabled: true
+    prompt_instructions:
+      - "Be transparent about what you know and don't know."
+      - "Acknowledge any limitations in your response."
+      - "Indicate your confidence level in the answer if uncertain."
+      - "Explain what information would make your answer more complete."
+    reflection_prompts:
+      - "Is this information explicitly in the documents or are you inferring?"
+      - "Are there any conflicting perspectives on this topic?"
+      - "What are the limitations of your knowledge on this subject?"
+    use_cases:
+      - "Building trust with users"
+      - "Preventing hallucinations"
+      - "Honest capability assessment"
+
+  tree_of_thought:
+    name: "Tree-of-Thought (ToT)"
+    description: "Explores multiple reasoning paths simultaneously and evaluates them. Complex but powerful for difficult problems."
+    enabled: false
+    prompt_instructions:
+      - "Explore multiple possible approaches to this question."
+      - "For each approach, consider its strengths and weaknesses."
+      - "Select the most promising approach based on your evaluation."
+      - "Provide the answer using the best reasoning path."
+    parameters:
+      max_branches: 3
+      evaluation_criteria: "accuracy, relevance, completeness"
+    use_cases:
+      - "Complex decision-making"
+      - "Problems with multiple solution paths"
+      - "Exploration-heavy questions"
+
+  rag_enhanced_reasoning:
+    name: "RAG-Enhanced Reasoning"
+    description: "Combines your existing RAG approach with reasoning strategies. Retrieve documents first, then apply reasoning."
+    enabled: true
+    prompt_instructions:
+      - "First, use the retrieved documents as your knowledge base."
+      - "Then, apply logical reasoning to synthesize the information."
+      - "Always ground your answer in the provided documents."
+      - "Do not speculate beyond what is explicitly stated."
+    integration_steps:
+      - step: 1
+        description: "Retrieve relevant documents from vector database"
+      - step: 2
+        description: "Analyze retrieved context"
+      - step: 3
+        description: "Apply reasoning strategy"
+      - step: 4
+        description: "Formulate answer grounded in documents"
+    use_cases:
+      - "Your current RAG implementation"
+      - "Document-based Q&A"
+      - "Knowledge-grounded reasoning"
+
+  hybrid_reasoning:
+    name: "Hybrid Reasoning"
+    description: "Combines multiple reasoning strategies for enhanced results."
+    enabled: false
+    strategies:
+      - "rag_enhanced_reasoning"
+      - "chain_of_thought"
+      - "metacognitive_prompting"
+    configuration:
+      primary_strategy: "rag_enhanced_reasoning"
+      secondary_strategies:
+        - "chain_of_thought"
+        - "metacognitive_prompting"
+      fallback_strategy: "structured_prompting"
+    use_cases:
+      - "Complex multi-faceted questions"
+      - "When maximum accuracy is needed"
+      - "Requiring both reasoning and honesty about limitations"
+
+active_strategy: "rag_enhanced_reasoning"
+
+strategy_selection_guide:
+  simple_factual_questions: "rag_enhanced_reasoning"
+  complex_analytical_questions: "chain_of_thought"
+  ambiguous_questions: "self_consistency"
+  requiring_specific_format: "structured_prompting"
+  requiring_transparency: "metacognitive_prompting"
+  exploration_heavy: "tree_of_thought"
+  production_mode: "hybrid_reasoning"
