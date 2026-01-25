@@ -104,7 +104,7 @@ This project implements a **Retrieval-Augmented Generation (RAG)** chatbot that:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/rt-aaidc-rag-based-assistant.git
+git clone https://github.com/sonyjtp/rt-aaidc-rag-based-assistant.git
 cd rt-aaidc-rag-based-assistant
 
 # Create virtual environment
