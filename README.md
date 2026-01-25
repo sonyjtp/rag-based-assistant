@@ -4,8 +4,8 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-175%20passing-brightgreen.svg)]()
-[[[[[![Code Coverage](https://img.shields.io/badge/coverage-91.28%25-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)]()
+[![Code Coverage](https://img.shields.io/badge/coverage-91.28%25-brightgreen.svg)]()
 [![Pylint](https://github.com/sonyjtp/rag-based-assistant/actions/workflows/pylint.yml/badge.svg)](https://github.com/sonyjtp/rag-based-assistant/actions/workflows/pylint.yml)
 
 [Quick Start](#-quick-start) • [Features](#-features) • [Installation](#-installation) • [Contributing](#-contributing)
@@ -205,72 +205,37 @@ docker run -e OPENAI_API_KEY=your_key -v $(pwd)/data:/app/data rag-assistant
 OPENAI_API_KEY=sk-...
 GROQ_API_KEY=gsk_...
 GOOGLE_API_KEY=AIzaSy...
-OPENAI_MODEL=gpt-4o-mini
-GROQ_MODEL=llama-3.1-8b-instant
 
 # Vector Database
 CHROMA_API_KEY=your_api_key
 CHROMA_TENANT=default
 CHROMA_DATABASE=default
+CHROMA_COLLECTION_NAME=default_collection
 
-# Embedding Model
-VECTOR_DB_EMBEDDING_MODEL=sentence-transformers/all-mpnet-base-v2
-
-# Memory Strategy
-MEMORY_STRATEGY=conversation_buffer_memory  # or summarization_sliding_window
-
-# Retrieval
-RETRIEVAL_K=5  # Number of documents to retrieve
-
-# Text Processing
-CHUNK_SIZE=1000
-CHUNK_OVERLAP=200
-
-# Reasoning Strategy
-REASONING_STRATEGY=chain_of_thought
 ```
 
 ### Configuration Files
 
-**config.py** - Core configuration
-```python
-CHUNK_SIZE_DEFAULT = 1000
-CHUNK_OVERLAP_DEFAULT = 200
-RETRIEVAL_K_DEFAULT = 5
-```
+**[config.py](src/config.py)** - Core configuration
+- Document processing: `CHUNK_SIZE_DEFAULT = 500`, `CHUNK_OVERLAP_DEFAULT = 100`
+- Vector database: `VECTOR_DB_EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"`
+- LLM providers: OpenAI, Groq, Google Gemini with priority-based selection
+- All defaults can be overridden via `.env` file
 
-**config/prompt-config.yaml** - System prompts and constraints
-```yaml
-system_prompts:
-  - "Only answer based on provided documents"
-  - "Do not use training data or general knowledge"
-  - "If information not found: respond with 'I'm sorry, that information is not known to me.'"
-```
+**[config/memory_strategies.yaml](config/memory_strategies.yaml)** - Memory configuration
+- **summarization_sliding_window** (default): Summarizes last N messages
+- **simple_buffer**: Stores recent conversation history
+- **summary**: Maintains running conversation summary
 
-**config/memory_strategies.yaml** - Memory configuration
-```yaml
-memory_strategies:
-  conversation_buffer_memory:
-    enabled: true
-    parameters:
-      memory_key: chat_history
-  summarization_sliding_window:
-    enabled: true
-    parameters:
-      window_size: 5
-      memory_key: chat_history
-```
+**[config/reasoning_strategies.yaml](config/reasoning_strategies.yaml)** - Reasoning approaches
+- **chain_of_thought** (default): Step-by-step reasoning
+- **self_consistency**: Multiple reasoning paths with consensus
+- **few_shot_prompting**: Provides examples to guide responses
 
-**config/reasoning_strategies.yaml** - Reasoning approaches
-```yaml
-reasoning_strategies:
-  chain_of_thought:
-    enabled: true
-    instructions: "Think step by step..."
-  tree_of_thought:
-    enabled: true
-    instructions: "Explore multiple paths..."
-```
+**[config/prompt-config.yaml](config/prompt-config.yaml)** - System prompts
+- Two prompt styles: **candid** (friendly, direct) and **formal** (professional)
+- Comprehensive constraints to prevent hallucination
+- Output formatting rules and meta-question handling
 
 ---
 
@@ -305,28 +270,6 @@ streamlit run src/streamlit_app.py
 # - Auto-saves conversation
 ```
 
-### Python API
-
-```python
-from src.rag_assistant import RAGAssistant
-
-# Initialize assistant
-assistant = RAGAssistant()
-
-# Add documents
-documents = [
-    {"content": "Document text...", "title": "Doc 1", "filename": "doc1.txt"}
-]
-assistant.add_documents(documents)
-
-# Ask questions
-response = assistant.invoke("What is the main topic?")
-print(response)
-
-# Get memory history
-memory_vars = assistant.memory_manager.get_memory_variables()
-print(memory_vars["chat_history"])
-```
 
 ---
 
@@ -335,39 +278,69 @@ print(memory_vars["chat_history"])
 ### System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    User Interface                        │
-│  ┌──────────────┐      ┌──────────────┐                │
-│  │   CLI App    │      │  Streamlit   │                │
-│  │  (app.py)    │      │    (web UI)  │                │
-│  └──────────────┘      └──────────────┘                │
-└───────────────┬────────────────────────────┬────────────┘
-                │                            │
-                ▼                            ▼
-┌─────────────────────────────────────────────────────────┐
-│                  RAG Assistant Core                      │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │  RAGAssistant                                    │  │
-│  │  - invoke(query)                                 │  │
-│  │  - add_documents(docs)                           │  │
-│  │  - retrieve_context(query, k)                    │  │
-│  └──────────────────────────────────────────────────┘  │
-└───────────┬──────────────┬──────────────┬───────────────┘
-            │              │              │
-    ┌───────▼──┐    ┌──────▼────┐  ┌────▼─────┐
-    │ VectorDB │    │   Memory   │  │ Prompt   │
-    │          │    │  Manager   │  │ Builder  │
-    │ ChromaDB │    │ (Buffer or │  │          │
-    │          │    │ Summarized)│  │ System   │
-    └──────────┘    └────────────┘  └──────────┘
-            │              │              │
-            ▼              ▼              ▼
-    ┌─────────────────────────────────────┐
-    │       LLM Integration               │
-    │ ┌──────┐ ┌─────┐ ┌──────────┐      │
-    │ │OpenAI│ │Groq │ │  Google  │      │
-    │ └──────┘ └─────┘ └──────────┘      │
-    └─────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                      User Interface                       │
+│  ┌─────────────────┐          ┌─────────────────┐       │
+│  │   CLI App       │          │  Streamlit      │       │
+│  │   (app.py)      │          │   (web UI)      │       │
+│  └────────┬────────┘          └────────┬────────┘       │
+└───────────┼───────────────────────────┼────────────────┘
+            │                           │
+            └─────────────┬─────────────┘
+                          │
+                          ▼
+    ┌─────────────────────────────────────────────┐
+    │         RAGAssistant Core                   │
+    │  - invoke(query) → Generate response        │
+    │  - add_documents(docs) → Index documents    │
+    │  - retrieve_context(query, k) → Search      │
+    └──────┬──────────────┬──────────────┬────────┘
+           │              │              │
+    ┌──────▼──────┐ ┌──────▼─────┐ ┌──────▼──────┐
+    │  VectorDB   │ │ Prompt     │ │ Reasoning   │
+    │             │ │ Builder    │ │ Strategy    │
+    │ ┌─────────┐ │ │            │ │ Loader      │
+    │ │ChromaDB │ │ │ System     │ │             │
+    │ │ Client  │ │ │ Prompts    │ │ (Chain of   │
+    │ └────┬────┘ │ │ Constraints│ │ Thought,    │
+    │      │      │ └─────┬──────┘ │ ReAct, etc) │
+    │ ┌────▼──────────┐   │        └─────┬───────┘
+    │ │  Embeddings   │   │              │
+    │ │ (HuggingFace  │   │              │
+    │ │ Transformer)  │   │              │
+    │ └───────────────┘   │              │
+    └────────┬────────────┴──────────────┘
+             │
+    ┌────────▼────────────────────────┐
+    │    Memory Manager               │
+    │  ┌──────────────────────────┐   │
+    │  │ Strategy Pattern         │   │
+    │  │ ┌────────────────────┐   │   │
+    │  │ │SlidingWindow       │   │   │
+    │  │ │(default)           │   │   │
+    │  │ ├────────────────────┤   │   │
+    │  │ │SimpleBuffer        │   │   │
+    │  │ ├────────────────────┤   │   │
+    │  │ │Summary             │   │   │
+    │  │ └────────────────────┘   │   │
+    │  └──────────────────────────┘   │
+    └────────┬────────────────────────┘
+             │
+    ┌────────▼────────────────────────┐
+    │  LLM Integration                │
+    │  ┌──────┐  ┌────┐  ┌──────────┐ │
+    │  │OpenAI│  │Groq│  │ Google   │ │
+    │  │      │  │    │  │ Gemini   │ │
+    │  └──────┘  └────┘  └──────────┘ │
+    └─────────────────────────────────┘
+
+┌─────────────────────────────────────┐
+│    Supporting Utilities             │
+│  ├─ File Utils (document loading)   │
+│  ├─ Logger (observability)          │
+│  ├─ UI Utils (Streamlit styling)    │
+│  └─ Config (centralized settings)   │
+└─────────────────────────────────────┘
 ```
 
 ### Data Flow
@@ -376,30 +349,53 @@ print(memory_vars["chat_history"])
 User Query
     │
     ▼
+Meta-Question Detection?
+    ├─ Keywords: "what topics", "what can you", "what do you know"
+    │ ├─ YES: Allow lower similarity matches
+    │ └─ NO: Require high similarity (distance <= 0.35, i.e., similarity >= 0.65)
+    │
+    ▼
 Document Search (VectorDB)
     │
-    ├─► Retrieve relevant documents (k=5)
+    ├─► Convert query to embedding
+    ├─► Search for similar documents (k results)
+    ├─► Return ranked results with distances
+    │
+    ▼
+Similarity Validation ⚡ (Hallucination Prevention)
+    │
+    ├─ Check: distance <= threshold?
+    │ ├─ META-QUESTION: Allow any distance
+    │ ├─ REGULAR QUESTION: Must pass threshold
+    │ └─ NO MATCH: Return "couldn't find information" → END
     │
     ▼
 Context Building
     │
-    ├─► Combine context with history
-    ├─► Add system prompts
+    ├─► Extract and flatten documents
+    ├─► Combine with conversation history (from Memory)
+    ├─► Add system prompts & constraints
+    ├─► Apply reasoning strategy
     │
     ▼
 LLM Processing
     │
-    ├─► Apply reasoning strategy
-    ├─► Generate response
+    ├─► Chain: [Prompt Template → LLM → Output Parser]
+    ├─► Generate response grounded in context
     │
     ▼
 Memory Update
     │
-    ├─► Save to conversation history
-    ├─► Apply memory strategy
+    ├─► Save Q&A pair to conversation history
+    ├─► Apply memory strategy:
+    │   ├─ SlidingWindow: Summarize when window full
+    │   ├─ SimpleBuffer: Keep recent messages
+    │   └─ Summary: Maintain running summary
     │
     ▼
-Response to User
+Response to User ✅
+    │
+    └─► Return context-grounded answer
 ```
 
 ---
@@ -407,58 +403,80 @@ Response to User
 ## 📁 Project Structure
 
 ```
-rt-aaidc-rag-based-assistant/
+rag-based-assistant/
 │
 ├── src/                          # Source code
 │   ├── app.py                   # CLI interface
 │   ├── streamlit_app.py         # Web UI
-│   ├── rag_assistant.py         # Core RAG logic (98% tested)
+│   ├── rag_assistant.py         # Core RAG logic
 │   ├── vectordb.py              # Vector database wrapper
 │   ├── chroma_client.py         # ChromaDB client
 │   ├── embeddings.py            # Embedding model initialization
 │   ├── llm_utils.py             # LLM provider selection
-│   ├── prompt_builder.py        # Prompt generation (97% tested)
-│   ├── memory_manager.py        # Memory handling (81% tested)
-│   ├── sliding_window_memory.py # Summarization-based memory (90% tested)
-│   ├── reasoning_strategy_loader.py  # Reasoning strategies (100% tested)
+│   ├── prompt_builder.py        # Prompt generation
+│   ├── memory_manager.py        # Memory handling
+│   ├── sliding_window_memory.py # Summarization-based memory
+│   ├── simple_buffer_memory.py  # Buffer memory implementation
+│   ├── summary_memory.py        # Summary memory implementation
+│   ├── reasoning_strategy_loader.py  # Reasoning strategies
 │   ├── file_utils.py            # File I/O utilities
-│   ├── config.py                # Configuration (100% tested)
-│   └── logger.py                # Logging setup (96% tested)
+│   ├── config.py                # Configuration
+│   ├── ui_utils.py              # Streamlit UI utilities
+│   └── logger.py                # Logging setup
 │
 ├── config/                       # Configuration files
-│   ├── prompt-config.yaml       # System prompts
-│   ├── memory_strategies.yaml   # Memory configurations
-│   └── reasoning_strategies.yaml # Reasoning strategies
+│   ├── prompt-config.yaml       # System prompts & constraints
+│   ├── memory_strategies.yaml   # Memory strategy configurations
+│   └── reasoning_strategies.yaml # Reasoning strategy definitions
 │
-├── data/                         # Document storage
-│   ├── sample_doc1.txt
-│   ├── sample_doc2.txt
-│   └── ...
+├── static/                       # Static assets
+│   └── css/
+│       └── styles.css           # Streamlit custom styling
 │
-├── tests/                        # Test suite (191 tests)
-│   ├── test_rag_assistant.py           (26 tests)
-│   ├── test_prompt_builder.py          (35 tests)
-│   ├── test_hallucination_prevention.py (15 tests)
-│   ├── test_memory_manager.py          (16 tests)
-│   ├── test_reasoning_strategy.py      (31 tests)
-│   ├── test_embeddings.py              (16 tests)
-│   ├── test_file_utils.py              (32 tests)
-│   ├── test_sliding_window_memory.py   (39 tests)
-│   ├── test_integrations.py            (20 tests)
-│   └── test_app.py                     (5 tests)
+├── data/                         # Document storage (user documents)
+│   └── *.txt                    # Text documents for RAG
+│
+├── tests/                        # Test suite
+│   ├── conftest.py              # Pytest configuration
+│   ├── fixtures/
+│   │   └── sample_data.py       # Test fixtures & sample data
+│   ├── test_rag_assistant.py
+│   ├── test_prompt_builder.py
+│   ├── test_hallucination_prevention.py
+│   ├── test_memory_manager.py
+│   ├── test_reasoning_strategy.py
+│   ├── test_embeddings.py
+│   ├── test_file_utils.py
+│   ├── test_sliding_window_memory.py
+│   ├── test_buffer_and_summary_memory.py
+│   ├── test_integrations.py
+│   ├── test_ui_utils.py
+│   └── test_app.py
 │
 ├── logs/                         # Application logs
 │   ├── debug.log
 │   └── rag_assistant.log
 │
-├── requirements.txt              # Python dependencies
+├── .github/                      # GitHub configuration
+│   └── workflows/               # CI/CD workflows (optional)
+│
+├── htmlcov/                      # HTML coverage reports (generated)
+│
+├── requirements.txt              # Production dependencies
 ├── requirements-test.txt         # Testing dependencies
+├── requirements-dev.txt          # Development tools (pre-commit, black, isort, pylint)
 ├── pytest.ini                    # Pytest configuration
-├── .env.example                  # Example environment variables
+├── .pylintrc                     # Pylint configuration
+├── .pre-commit-config.yaml       # Pre-commit hooks configuration
 ├── .coveragerc                   # Coverage configuration
+├── .gitignore                    # Git ignore rules
+├── .env_example                  # Example environment variables
+│
+├── update_coverage.py            # Coverage badge update script
+├── TESTING.md                    # Testing guide & instructions
+├── UI_GUIDE.md                   # Streamlit UI guide
 ├── README.md                     # This file
-├── LICENSE                       # MIT License
-└── .gitignore
+└── LICENSE                       # License
 ```
 
 ---
@@ -468,7 +486,6 @@ rt-aaidc-rag-based-assistant/
 ### Run Full Test Suite
 
 ```bash
-# Run all 191 tests
 pytest -v
 
 # Run with coverage report
@@ -490,10 +507,14 @@ pre-commit install
 pre-commit run --all-files
 
 # Pre-commit checks include:
+# ✅ Standard checks (trailing whitespace, file endings, YAML, merge conflicts)
 # ✅ Code formatting (Black, isort)
-# ✅ Code linting (Pylint, Flake8)
-# ✅ Test coverage (minimum 90%)
+# ✅ Code linting (Flake8, Pylint ≥9.5 score)
+# ✅ Tests (pytest - all tests must pass)
+# ✅ Coverage (minimum 90% required)
 ```
+
+**If a check fails**, fix the issues and commit again. Most checks (Black, isort, end-of-file-fixer) auto-fix issues, so you may need to stage the changes and retry.
 
 **Note**: Commits will be rejected if test coverage drops below 90%. To bypass (not recommended):
 ```bash
@@ -542,39 +563,23 @@ The badge is updated:
 - ✅ Before pull requests (verify coverage meets threshold)
 - ✅ Manually via `python update_coverage.py`
 
-### Test Coverage
-
-```
-Overall Coverage: 78%
-┌──────────────────────────┬──────────┐
-│ Module                   │ Coverage │
-├──────────────────────────┼──────────┤
-│ rag_assistant.py         │ 98%      │
-│ prompt_builder.py        │ 97%      │
-│ reasoning_strategy_loader│ 100%     │
-│ config.py                │ 100%     │
-│ memory_manager.py        │ 81%      │
-│ sliding_window_memory.py │ 90%      │
-│ embeddings.py            │ 90%      │
-│ file_utils.py            │ 90%      │
-│ chroma_client.py         │ 85%      │
-└──────────────────────────┴──────────┘
-```
-
----
 
 ## 🎛️ Customization Guide
 
 ### Change Memory Strategy
 
-```python
-# In config.py or .env
-MEMORY_STRATEGY = "conversation_buffer_memory"  # Or "summarization_sliding_window"
+Edit `config.py` to change the memory strategy:
 
-# In code
-from src.memory_manager import MemoryManager
-memory = MemoryManager(llm=llm, strategy="summarization_sliding_window")
+```python
+# In src/config.py
+MEMORY_STRATEGY = "summarization_sliding_window"  # Options: summarization_sliding_window, simple_buffer, summary, none
 ```
+
+Available memory strategies (defined in `config/memory_strategies.yaml`):
+- **summarization_sliding_window** (default): Summarizes last N messages using sliding window
+- **simple_buffer**: Stores recent conversation history in a buffer
+- **summary**: Maintains a running summary of the conversation
+- **none**: Disables conversation memory entirely
 
 ### Switch LLM Provider
 
@@ -588,7 +593,7 @@ OPENAI_API_KEY=sk-...    # Uses OpenAI
 ### Adjust Document Chunking
 
 ```bash
-# In .env
+# In config.py
 CHUNK_SIZE=2000          # Larger chunks
 CHUNK_OVERLAP=400        # More overlap for context
 RETRIEVAL_K=10           # Retrieve more documents
@@ -623,29 +628,16 @@ def build_system_prompts():
 
 ## 🧠 Memory Management
 
-### Buffer Memory
-- **Use case**: Short conversations (< 20 messages)
-- **Pros**: Remembers everything, simple
-- **Cons**: Token usage grows, no summarization
+Three memory strategies are available (configured in [config/memory_strategies.yaml](config/memory_strategies.yaml)):
 
-```yaml
-conversation_buffer_memory:
-  enabled: true
-  parameters:
-    memory_key: chat_history
-```
+- **summarization_sliding_window** (default): Summarizes last N messages to stay within token limits
+- **simple_buffer**: Stores recent conversation history without summarization
+- **summary**: Maintains a running summary of the entire conversation
+- **none**: Disables conversation memory
 
-### Sliding Window Memory
-- **Use case**: Long conversations (100+ messages)
-- **Pros**: Keeps recent context, summarizes old conversations
-- **Cons**: Requires LLM for summarization
-
-```yaml
-summarization_sliding_window:
-  enabled: true
-  parameters:
-    window_size: 5        # Keep last 5 messages
-    memory_key: chat_history
+Change the strategy in `src/config.py`:
+```python
+MEMORY_STRATEGY = "summarization_sliding_window"
 ```
 
 ### Disable Memory
@@ -657,70 +649,33 @@ MEMORY_STRATEGY=none
 
 ## 🎯 Reasoning Strategies
 
-### Available Strategies
+Four reasoning strategies are available (configured in [config/reasoning_strategies.yaml](config/reasoning_strategies.yaml)):
 
-1. **Chain-of-Thought**
-   - Step-by-step reasoning
-   - Best for: Complex questions requiring multiple steps
+- **chain_of_thought** (default): Step-by-step reasoning before final answer
+- **self_consistency**: Multiple reasoning paths with consensus answer
+- **few_shot_prompting**: Provides examples to guide model responses
+- **rag_enhanced_reasoning**: RAG-specific reasoning constraints
 
-2. **Tree-of-Thought**
-   - Explores multiple reasoning paths
-   - Best for: Questions with multiple valid approaches
-
-3. **Self-Consistent**
-   - Generates multiple answers, picks best
-   - Best for: Ensuring consistent, reliable answers
-
-```bash
-# Set in .env
-REASONING_STRATEGY=chain_of_thought
+Change the strategy in `src/config.py`:
+```python
+REASONING_STRATEGY = "rag_enhanced_reasoning"
 ```
 
 ---
 
 ## ❓ Troubleshooting
 
-### Common Issues
+| Issue                | Solution                                                                 |
+|----------------------|--------------------------------------------------------------------------|
+| API Key not found    | Set `OPENAI_API_KEY`, `GROQ_API_KEY`, or `GOOGLE_API_KEY` in `.env`      |
+| No documents found   | Add `.txt` files to `data/` directory or use `assistant.add_documents()` |
+| Token limit exceeded | Reduce `CHUNK_SIZE` or enable memory summarization in config             |
+| Low answer quality   | Increase `RETRIEVAL_K_DEFAULT` to retrieve more documents                |
+| Hallucination issues | Ensure documents are loaded and similarity threshold is set correctly    |
 
-#### "API Key not found"
-```bash
-# Solution: Check your .env file
-cat .env | grep API_KEY
+For more help, see [TESTING.md](TESTING.md) and [UI_GUIDE.md](UI_GUIDE.md).
 
-# Make sure the file exists and has correct keys
-cp .env_example .env
-# Edit .env with your actual API key
-```
-
-#### "No documents found"
-```bash
-# Solution: Add .txt files to data/ directory
-ls data/
-# Should show your document files
-
-# Or load documents programmatically
-assistant.add_documents([{"content": "...", "title": "Doc1"}])
-```
-
-#### "Out of memory / token limit exceeded"
-```bash
-# Solution 1: Use smaller chunk size
-CHUNK_SIZE=500
-
-# Solution 2: Reduce retrieval results
-RETRIEVAL_K=3
-
-# Solution 3: Use sliding window memory
-MEMORY_STRATEGY=summarization_sliding_window
-```
-
-#### "LLM not responding / Timeout"
-```bash
-# Solution: Switch to faster LLM
-# In .env, use Groq (fastest and free):
-GROQ_API_KEY=gsk_...
-# Comment out other API keys
-```
+---
 
 ### Debug Mode
 
@@ -735,16 +690,14 @@ pytest -v --log-cli-level=DEBUG
 
 ---
 
-## 🤝 Contributing
 
-We welcome contributions! Here's how to get involved:
 
 ### Development Setup
 
 ```bash
 # Fork and clone
-git clone https://github.com/yourusername/rt-aaidc-rag-based-assistant.git
-cd rt-aaidc-rag-based-assistant
+git clone https://github.com/sonyjtp/rag-based-assistant.git
+cd rag-based-assistant
 
 # Create feature branch
 git checkout -b feature/amazing-feature
@@ -835,35 +788,10 @@ To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-
 
 ## 🎓 Author
 
-**Your Name** - AAIDC Project Contributor
-
-- 📧 Email: your.email@example.com
-- 🐙 GitHub: [@yourusername](https://github.com/yourusername)
-- 💼 LinkedIn: [Your Profile](https://linkedin.com/in/yourprofile)
+**Sony Jacob Thomas**
 
 ---
 
-## 🙏 Acknowledgments
-
-- [LangChain](https://langchain.com/) - LLM orchestration framework
-- [ChromaDB](https://www.trychroma.com/) - Vector database
-- [Groq](https://groq.com/) - Fast LLM inference
-- [OpenAI](https://openai.com/) - GPT models
-- [Google](https://ai.google.dev/) - Gemini models
-
----
-
-## 📞 Support
-
-Need help? Here are your options:
-
-1. **Check Documentation**: Read this README and config files
-2. **Review Examples**: Check `tests/` for usage examples
-3. **Search Issues**: Look for similar issues on GitHub
-4. **Create Issue**: If problem persists, create a GitHub issue
-5. **Discussions**: Join community discussions on GitHub
-
----
 
 **Last Updated**: January 2026
-**Status**: ✅ Production Ready | 191 Tests Passing | 78% Coverage
+**Status**:  🛠️ Under Active Development
