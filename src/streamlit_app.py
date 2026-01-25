@@ -1,6 +1,5 @@
+"""Streamlit web UI for the RAG-based AI assistant."""
 import os
-
-os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -9,6 +8,9 @@ from config import DATA_DIR
 from file_utils import load_documents
 from rag_assistant import RAGAssistant
 from logger import logger
+
+# Set tokenizers parallelism to avoid warnings
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 # Load environment variables
 load_dotenv()
@@ -111,10 +113,10 @@ if not st.session_state.initialization_attempted:
         st.session_state.assistant.add_documents(documents)
         st.session_state.documents_loaded = True
         st.session_state.initialized = True
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         st.session_state.initialized = False
-        logger.error(f"Error initializing assistant: {e}")
-        st.error("I'm sorry, an error occurred while initializing the assistant. Please try again.")
+        logger.error("Error initializing assistant: %s", e)
+        st.error("Error initializing assistant. Please try again.")
 
 # Sidebar configuration
 with st.sidebar:
@@ -200,36 +202,39 @@ if st.session_state.initialized:
             "role": "user",
             "content": user_input
         })
-        logger.debug(f"User question: {user_input}")
+        logger.debug("User question: %s", user_input)
 
         # Get assistant response
-        status = st.status("🔍 Searching documents and generating response...", expanded=True)
+        status = st.status("🔍 Searching documents and generating response...",
+                          expanded=True)
         try:
             response = st.session_state.assistant.invoke(user_input)
-            logger.debug(f"Agent response received: {response[:100]}...")  # Log first 100 chars
+            logger.debug("Agent response received: %s", response[:100])
 
             # Clean up the response - remove markdown headers and separators
             lines = response.split('\n')
             cleaned_lines = []
             skip_next = False
 
-            for i, line in enumerate(lines):
+            for i, line in enumerate(lines):  # pylint: disable=unused-variable
                 # Skip markdown headers (lines starting with # or **)
-                if line.strip().startswith('#') or line.strip().startswith('**'):
-                    # Skip the header and the separator line after it
+                if (line.strip().startswith('#') or
+                    line.strip().startswith('**')):
                     skip_next = True
                     continue
                 # Skip separator lines (===, ---, etc.)
-                if skip_next and (all(c in '=-_' for c in line.strip()) and len(line.strip()) > 3):
+                if (skip_next and
+                    (all(c in '=-_' for c in line.strip()) and
+                     len(line.strip()) > 3)):
                     skip_next = False
                     continue
-                # Skip empty lines at the start of cleaned response
+                # Skip empty lines at the start
                 if cleaned_lines or line.strip():
                     cleaned_lines.append(line)
                 skip_next = False
 
-            cleaned_response = '\n'.join(cleaned_lines).strip()
-            logger.debug(f"Cleaned response: {cleaned_response[:100]}...")  # Log first 100 chars
+            cleaned_response = '\n'.join(cleaned_lines).strip()  # pylint: disable=invalid-name
+            logger.debug("Cleaned response: %s", cleaned_response[:100])
 
             st.session_state.chat_history.append({
                 "role": "assistant",
@@ -237,11 +242,11 @@ if st.session_state.initialized:
             })
             status.update(label="✅ Response generated!", state="complete")
             st.rerun()
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             status.update(label="❌ Error generating response", state="error")
-            logger.error(f"Error generating response: {e}")
-            st.error("I'm sorry, an error occurred while processing your question. Please try again.")
+            logger.error("Error generating response: %s", e)
+            st.error("Error processing your question. Please try again.")
 else:
     if not st.session_state.initialization_attempted:
-        st.info("⏳ RAG Assistant is initializing... Please wait a moment and refresh the page if needed.")
-
+        msg = "RAG Assistant is initializing... Please wait and refresh if needed."  # pylint: disable=invalid-name
+        st.info(f"⏳ {msg}")

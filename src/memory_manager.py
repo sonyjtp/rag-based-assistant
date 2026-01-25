@@ -13,19 +13,19 @@ from logger import logger
 # Make PyYAML optional to avoid import errors in lightweight environments
 try:
     import yaml  # type: ignore
-except Exception:  # pragma: no cover - optional dependency
+except ImportError:  # pragma: no cover - optional dependency
     yaml = None
 
 # Try to import optional langchain memory classes at module import time so
 # we avoid import-outside-toplevel lint warnings. If unavailable, set to None.
 try:
-    from langchain.memory import (
+    from langchain.memory import (  # type: ignore
         ConversationSummaryMemory,
         ConversationBufferMemory,
     )
-except Exception:  # pragma: no cover - optional dependency
-    ConversationSummaryMemory = None
-    ConversationBufferMemory = None
+except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dependency
+    ConversationSummaryMemory = None  # type: ignore
+    ConversationBufferMemory = None  # type: ignore
 
 
 class MemoryManager:

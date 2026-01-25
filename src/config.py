@@ -119,4 +119,3 @@ REASONING_STRATEGY = "rag_enhanced_reasoning"
 # Prompt Configuration
 PROMPT_CONFIG_FPATH = os.path.join(ROOT_DIR, "config", "prompt-config.yaml")
 PROMPT_CONFIG_NAME = "rag-assistant-system-prompt-formal"
-

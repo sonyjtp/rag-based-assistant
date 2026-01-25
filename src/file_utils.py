@@ -6,30 +6,39 @@ from typing import Iterator
 # Make YAML and LangChain imports optional so linting doesn't fail in environments
 # where these dependencies aren't installed. Provide lightweight fallbacks.
 try:
-    import yaml
-except Exception:  # pragma: no cover - optional dependency
+    import yaml  # type: ignore
+except ImportError:  # pragma: no cover - optional dependency
     yaml = None
 
 try:
-    from langchain_community.document_loaders import TextLoader
-except Exception:  # pragma: no cover - optional dependency
+    from langchain_community.document_loaders import (  # type: ignore
+        TextLoader,
+    )
+except ImportError:  # pragma: no cover - optional dependency
     TextLoader = None
 
 from logger import logger
 
 
 # Lightweight fallback loader that mimics the minimal interface used in this module
-class _SimpleDoc:
+class _SimpleDoc:  # pylint: disable=too-few-public-methods
+    """Simple document wrapper with minimal interface for compatibility."""
+
     def __init__(self, page_content: str) -> None:
+        """Initialize document with content."""
         self.page_content = page_content
 
 
-class _SimpleTextLoader:
+class _SimpleTextLoader:  # pylint: disable=too-few-public-methods
+    """Lightweight fallback TextLoader when langchain_community unavailable."""
+
     def __init__(self, path: str, encoding: str = "utf-8") -> None:
+        """Initialize loader with file path and encoding."""
         self._path = path
         self._encoding = encoding
 
     def load(self) -> Iterator[_SimpleDoc]:
+        """Load and yield document from file."""
         with open(self._path, "r", encoding=self._encoding) as fh:
             yield _SimpleDoc(fh.read())
 

@@ -1,14 +1,21 @@
 """Main entry point for the RAG Assistant CLI application."""
 import os
 
-os.environ['TOKENIZERS_PARALLELISM'] = 'false'
-
-from dotenv import load_dotenv
+# Optional dotenv import (not required in all environments)
+try:
+    from dotenv import load_dotenv  # type: ignore
+except ImportError:  # pragma: no cover - optional dependency
+    def load_dotenv(*_args, **_kwargs):  # pylint: disable=missing-function-docstring
+        """Stub for load_dotenv when python-dotenv is not installed."""
+        return False
 
 from config import DATA_DIR
 from file_utils import load_documents
 from rag_assistant import RAGAssistant
 from logger import logger
+
+# Ensure tokenizers won't use parallelism
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 # Load environment variables
 load_dotenv()
@@ -18,7 +25,7 @@ def main():
     try:
         # Load documents
         documents = load_documents(folder=DATA_DIR, file_extns=".txt")
-        logger.info(f"Loaded {len(documents)} documents")
+        logger.info("Loaded %d documents", len(documents))
 
         # Initialize the RAG assistant
         assistant = RAGAssistant()
@@ -31,11 +38,11 @@ def main():
                 done = True
             else:
                 result = assistant.invoke(question)
-                logger.info(result)
+                logger.info("%s", result)
 
     except (FileNotFoundError, ValueError, RuntimeError) as e:
-        logger.error(f"Error running RAG assistant: {e}")
-        logger.error("I'm sorry, an error occurred while running the assistant. Please try again.")
+        logger.error("Error running RAG assistant: %s", e)
+        logger.error("An error occurred while running the assistant. Please try again.")
 
 
 if __name__ == "__main__":

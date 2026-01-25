@@ -1,9 +1,14 @@
+"""Vector database wrapper using ChromaDB with HuggingFace embeddings."""
 from typing import Dict, Any
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from chroma_client import ChromaDBClient
-from config import CHUNK_SIZE_DEFAULT, CHUNK_OVERLAP_DEFAULT, COLLECTION_NAME_DEFAULT
+from config import (
+    CHUNK_SIZE_DEFAULT,
+    CHUNK_OVERLAP_DEFAULT,
+    COLLECTION_NAME_DEFAULT,
+)
 from embeddings import initialize_embedding_model
 from logger import logger
 
@@ -29,38 +34,49 @@ class VectorDB:
         """
 
         # Initialize ChromaDB client and get or create collection
-        self.collection = ChromaDBClient().get_or_create_collection(collection_name)
-        logger.info(f"Vector database collection {self.collection.name} ready for use")
+        self.collection = ChromaDBClient().get_or_create_collection(
+            collection_name
+        )
+        logger.info("Vector database collection %s ready for use",
+                    self.collection.name)
 
         self.embedding_model = initialize_embedding_model()
-        logger.info(f"Embedding model: {self.embedding_model.model_name}")
+        logger.info("Embedding model: %s", self.embedding_model.model_name)
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             separators=["\n\n", "\n", ". ", " ", ""]
         )
 
-    def _chunk_documents(self, documents: list[str] | list[dict[str, str]]) -> list[tuple[str, dict[str, str]]]:
+    def _chunk_documents(
+        self, documents: list[str] | list[dict[str, str]]
+    ) -> list[tuple[str, dict[str, str]]]:
         """
-        Chunk documents into smaller pieces. Each chunk is paired with its metadata.
+        Chunk documents into smaller pieces. Each chunk is paired with metadata.
+
         Args:
-            documents: List of documents (strings or dicts with 'content', 'title', 'filename', and 'tags')
+            documents: List of documents (strings or dicts with 'content',
+                      'title', 'filename', and 'tags')
 
         Returns:
-            List of tuples containing chunk text and metadata dictionary with title, filename, and tags
+            List of tuples containing chunk text and metadata dictionary with
+            title, filename, and tags
         """
         docs = documents if isinstance(documents, list) else [documents]
         chunks_with_metadata = [
             (chunk, {
                 'title': doc.get('title', '') if isinstance(doc, dict) else '',
-                'filename': doc.get('filename', '') if isinstance(doc, dict) else '',
+                'filename': (doc.get('filename', '')
+                           if isinstance(doc, dict) else ''),
                 'tags': doc.get('tags', '') if isinstance(doc, dict) else ''
             })
             for doc in docs
             for chunk in self.text_splitter.split_text(
                 doc['content'] if isinstance(doc, dict) else doc
             )
-            if chunk.strip() != (doc.get('title', '').strip() if isinstance(doc, dict) else '')
+            if chunk.strip() != (
+                doc.get('title', '').strip() if isinstance(doc, dict) else ''
+            )
         ]
         return chunks_with_metadata
 
@@ -72,20 +88,23 @@ class VectorDB:
             documents: List of documents
         """
         chunks_with_metadata = self._chunk_documents(documents=documents)
-        logger.info(f"Created {len(chunks_with_metadata)} chunks from {len(documents)} documents")
+        logger.info("Created %d chunks from %d documents",
+                    len(chunks_with_metadata), len(documents))
         self._insert_chunks_into_db(chunks_with_metadata)
 
-
-    def _insert_chunks_into_db(self, chunks: list[tuple[str, dict]]):
+    def _insert_chunks_into_db(self, chunks: list[tuple[str, dict]]) -> None:
         """Insert deduplicated chunks into the vector database."""
         deduplicated_chunks = self._filter_duplicate_chunks(chunks)
 
         if deduplicated_chunks:
             if len(deduplicated_chunks) < len(chunks):
-                logger.info(f"Deduplicated to {len(deduplicated_chunks)} chunks")
+                logger.info("Deduplicated to %d chunks",
+                           len(deduplicated_chunks))
             next_id = self.collection.count()
-            keys = [f"document_{idx}" for idx in range(next_id, next_id + len(deduplicated_chunks))]
-            chunk_texts = [chunk.strip().lstrip('.,;:!? ') for chunk, _ in deduplicated_chunks]
+            keys = [f"document_{idx}"
+                   for idx in range(next_id, next_id + len(deduplicated_chunks))]
+            chunk_texts = [chunk.strip().lstrip('.,;:!? ')
+                          for chunk, _ in deduplicated_chunks]
             metadata = [metadata for _, metadata in deduplicated_chunks]
             embeddings = self.embedding_model.embed_documents(chunk_texts)
             self.collection.add(
@@ -94,7 +113,8 @@ class VectorDB:
                 documents=chunk_texts,
                 metadatas=metadata,
             )
-            logger.info(f"Added {len(deduplicated_chunks)} chunks to the vector database.")
+            logger.info("Added %d chunks to the vector database.",
+                       len(deduplicated_chunks))
         else:
             logger.warning("No new chunks to add (all are duplicates)")
 
@@ -133,7 +153,16 @@ class VectorDB:
 
         return final_chunks
 
-    def search(self, query: str, n_results: int = 5) -> Dict[str, Any]:
+    def _extract_search_results(self, results: dict) -> tuple:
+        """Extract search result components from ChromaDB response."""
+        def safe_get(key: str):
+            """Safely extract nested list from results."""
+            return results.get(key, [[]])[0] if results.get(key) else []
+
+        return (safe_get("documents"), safe_get("metadatas"),
+                safe_get("distances"), safe_get("ids"))
+
+    def search(self, query: str, n_results: int = 5) -> Dict[str, Any]:  # pylint: disable=too-many-locals
         """
         Search for similar documents in the vector database.
 
@@ -142,33 +171,30 @@ class VectorDB:
             n_results: Number of results to return
 
         Returns:
-            Dictionary containing search results with keys: 'documents', 'metadatas', 'distances', 'ids'
+            Dictionary containing search results with keys: 'documents',
+            'metadatas', 'distances', 'ids'
         """
-        # Generate embedding for the query
         query_embedding = self.embedding_model.embed_query(query)
-
-        # Query the ChromaDB collection
         results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=n_results
         )
 
-        # Extract documents from results
-        documents = results.get("documents", [[]])[0] if results.get("documents") else []
-        metadatas = results.get("metadatas", [[]])[0] if results.get("metadatas") else []
-        distances = results.get("distances", [[]])[0] if results.get("distances") else []
-        ids = results.get("ids", [[]])[0] if results.get("ids") else []
+        documents, metadatas, distances, ids = self._extract_search_results(
+            results
+        )
 
-        # Log debug information about top k matches and cosine similarity
-        logger.debug(f"Search query: {query}")
-        logger.debug(f"Retrieved {len(documents)} results")
+        logger.debug("Search query: %s", query)
+        logger.debug("Retrieved %d results", len(documents))
 
-        for i, (doc_id, distance, metadata) in enumerate(zip(ids, distances, metadatas), 1):
-            # Convert distance to cosine similarity (1 - distance)
+        for i, (doc_id, distance, metadata) in enumerate(
+            zip(ids, distances, metadatas), 1
+        ):
             cosine_similarity = 1 - distance
             title = metadata.get("title", "N/A")
             filename = metadata.get("filename", "N/A")
-            logger.debug(f"  Result {i}: {doc_id} | Similarity: {cosine_similarity:.4f} | Title: {title} | File: {filename}")
+            logger.debug("  Result %d: %s | Similarity: %.4f | Title: %s | File: %s",
+                        i, doc_id, cosine_similarity, title, filename)
 
         return {
             "documents": documents,

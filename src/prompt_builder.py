@@ -1,3 +1,4 @@
+"""Build system prompts from configuration and reasoning strategies."""
 import config
 from config import PROMPT_CONFIG_FPATH
 from file_utils import load_yaml
@@ -14,7 +15,8 @@ def build_system_prompts() -> list[str]:
     prompt_configs = load_yaml(PROMPT_CONFIG_FPATH)
     system_prompt_config = prompt_configs[config.PROMPT_CONFIG_NAME]
     if not system_prompt_config:
-        raise ValueError(f"System prompt config for '{config.PROMPT_CONFIG_NAME}' not found")
+        msg = f"System prompt config for '{config.PROMPT_CONFIG_NAME}' not found"
+        raise ValueError(msg)
     system_prompts = []
     logger.info("Building system prompts...")
 
@@ -48,15 +50,20 @@ def build_system_prompts() -> list[str]:
         if strategy_loader.is_strategy_enabled():
             strategy_instructions = strategy_loader.get_strategy_instructions()
             if strategy_instructions:
-                reasoning_prompt = "Apply the following reasoning approach:\n" + "\n".join(
-                    f"- {instruction}" for instruction in strategy_instructions
+                reasoning_prompt = (
+                    "Apply the following reasoning approach:\n" + "\n".join(
+                        f"- {instruction}" for instruction in strategy_instructions
+                    )
                 )
                 system_prompts.append(reasoning_prompt)
-                logger.debug(f"Added reasoning strategy '{strategy_loader.get_strategy_name()}' to system prompts.")
+                strategy_name = strategy_loader.get_strategy_name()
+                logger.debug("Added reasoning strategy '%s' to system prompts.",
+                             strategy_name)
         else:
-            logger.warning(f"Reasoning strategy '{config.REASONING_STRATEGY}' is disabled.")
-    except Exception as e:
-        logger.warning(f"Could not load reasoning strategy: {e}")
+            logger.warning("Reasoning strategy '%s' is disabled.",
+                           config.REASONING_STRATEGY)
+    except (AttributeError, ValueError) as e:  # pylint: disable=broad-exception-caught
+        logger.warning("Could not load reasoning strategy: %s", e)
 
     logger.info("System prompts built successfully")
     return system_prompts

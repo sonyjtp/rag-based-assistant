@@ -10,15 +10,16 @@ from pathlib import Path
 
 # Optional import of loguru; provide a stdlib fallback when missing.
 try:
-    from loguru import logger as _loguru_logger  # type: ignore
-except Exception:  # pragma: no cover - optional dependency
-    _loguru_logger = None
+    from loguru import logger as LOGURU_LOGGER  # type: ignore
+except ImportError:  # pragma: no cover - optional dependency
+    LOGURU_LOGGER = None
 
 # Optional dotenv loader; not required for environments without .env
 try:
     from dotenv import load_dotenv  # type: ignore
-except Exception:  # pragma: no cover - optional dependency
-    def load_dotenv(*_args, **_kwargs):
+except ImportError:  # pragma: no cover - optional dependency
+    def load_dotenv(*_args, **_kwargs):  # pylint: disable=missing-function-docstring
+        """Stub for load_dotenv when python-dotenv is not installed."""
         return False
 
 # Load .env file to ensure LOG_LEVEL is set before logger initialization
@@ -43,13 +44,13 @@ if LOG_LEVEL not in valid_levels:
     LOG_LEVEL = "INFO"
 
 # If loguru is available, configure it; otherwise use stdlib logging
-if _loguru_logger is not None:
-    logger = _loguru_logger
+if LOGURU_LOGGER is not None:
+    logger = LOGURU_LOGGER
 
     # Remove default handlers and add ours
     logger.remove()
 
-    console_fmt = (
+    CONSOLE_FORMAT = (
         "<level>{level: <8}</level> | "
         "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
         "<level>{message}</level>"
@@ -57,18 +58,18 @@ if _loguru_logger is not None:
 
     logger.add(
         sys.stderr,
-        format=console_fmt,
+        format=CONSOLE_FORMAT,
         colorize=True,
         level=LOG_LEVEL,
         enqueue=False,
     )
 
-    file_fmt = ("{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | "
-                "{name}:{function}:{line} - {message}")
+    FILE_FORMAT = ("{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | "
+                   "{name}:{function}:{line} - {message}")
 
     logger.add(
         LOG_FILE,
-        format=file_fmt,
+        format=FILE_FORMAT,
         rotation="10 MB",
         retention="7 days",
         level=LOG_LEVEL,
@@ -78,7 +79,7 @@ if _loguru_logger is not None:
     if LOG_LEVEL == "DEBUG":
         logger.add(
             DEBUG_FILE,
-            format=console_fmt,
+            format=CONSOLE_FORMAT,
             colorize=True,
             rotation="5 MB",
             retention="3 days",
@@ -127,9 +128,8 @@ else:
 try:
     logger.debug("Logger initialized with LOG_LEVEL: %s", LOG_LEVEL)
     logger.debug("Log files location: %s", LOG_DIR)
-except Exception:
+except (AttributeError, TypeError):  # pylint: disable=broad-exception-caught
     # If the logger implementation doesn't support the same API, ignore
     pass
 
 __all__ = ["logger"]
-

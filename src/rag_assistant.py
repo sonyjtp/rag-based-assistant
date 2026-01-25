@@ -1,3 +1,4 @@
+"""RAG-based AI assistant using ChromaDB and multiple LLM providers."""
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -19,7 +20,7 @@ class RAGAssistant:
     def __init__(self):
         """Initialize the RAG assistant."""
         self.llm = initialize_llm()
-        logger.info(f"LLM: {self.llm.model_name}")
+        logger.info("LLM: %s", self.llm.model_name)
 
         # Initialize vector database
         self.vector_db = VectorDB()
@@ -27,37 +28,30 @@ class RAGAssistant:
         # Initialize conversation memory
         self.memory_manager = MemoryManager(llm=self.llm)
         if self.memory_manager.memory:
-            logger.info(f"Memory manager initialized with strategy: {self.memory_manager.strategy}")
+            logger.info("Memory manager initialized with strategy: %s",
+                        self.memory_manager.strategy)
 
         # Initialize reasoning strategy
         try:
             self.reasoning_strategy = ReasoningStrategyLoader()
-            logger.info(f"Reasoning strategy loaded: {self.reasoning_strategy.get_strategy_name()}")
-        except Exception as e:
-            logger.error(f"Error loading reasoning strategy: {e}")
+            logger.info("Reasoning strategy loaded: %s",
+                        self.reasoning_strategy.get_strategy_name())
+        except (AttributeError, ValueError) as e:  # pylint: disable=broad-exception-caught
+            logger.error("Error loading reasoning strategy: %s", e)
             self.reasoning_strategy = None
 
         self._build_chain()
 
-        # TODO: Implement your RAG prompt template
-        # HINT: Use ChatPromptTemplate.from_template() with a template string
-        # HINT: Your template should include placeholders for {context} and {question}
-        # HINT: Design your prompt to effectively use retrieved context to answer questions
-        # self.prompt_template = None  # Your implementation here
-        #
-        # # Create the chain
-        # self.chain = self.prompt_template | self.llm | StrOutputParser()
-        #
-
     def _build_chain(self):
         """Build the prompt template and LLM chain."""
+        system_prompts = build_system_prompts()
         self.prompt_template = ChatPromptTemplate.from_messages([
-            ("system", "\n".join(build_system_prompts())),
+            ("system", "\n".join(system_prompts)),
             ("human", "Context from documents:\n{context}\n\nQuestion: {question}")
         ])
-        logger.info("Prompt template for RAG Assistant created from system prompts and for human input.")
+        logger.info("Prompt template for RAG Assistant created from system prompts.")
         self.chain = self.prompt_template | self.llm | StrOutputParser()
-        logger.info("Function chain with prompt template, LLM, and output parser built.")
+        logger.info("Function chain with prompt template, LLM, and parser built.")
 
 
     def add_documents(self, documents:  list[str] |  list[dict[str, str]]) -> None:

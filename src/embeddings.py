@@ -28,7 +28,7 @@ def initialize_embedding_model() -> HuggingFaceEmbeddings:
         if torch.backends.mps.is_available()
         else "cpu"
     )
-    logger.info(f"Embedding model device: {device}")
+    logger.info("Embedding model device: %s", device)
 
     model_name = os.getenv(
         VECTOR_DB_EMBEDDING_MODEL, "sentence-transformers/all-mpnet-base-v2"
@@ -38,4 +38,3 @@ def initialize_embedding_model() -> HuggingFaceEmbeddings:
         model_name=model_name,
         model_kwargs={"device": device},
     )
-

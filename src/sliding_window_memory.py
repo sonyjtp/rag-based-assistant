@@ -54,15 +54,15 @@ class SlidingWindowMemory:
             prompt = f"Summarize the key points from this conversation segment:\n\n{window_text}"
             response = self.llm.invoke(prompt)
             self.summary = response.content if hasattr(response, 'content') else str(response)
-        except Exception as e:
-            logger.error(f"Error summarizing window: {e}")
+        except (AttributeError, ValueError) as e:  # pylint: disable=broad-exception-caught
+            logger.error("Error summarizing window: %s", e)
             self.summary = window_text
 
         # Clear window for next iteration
         self.messages.clear()
-        logger.info(f"Memory window shifted (summarized {self.window_size} messages)")
+        logger.info("Memory window shifted (summarized %d messages)", self.window_size)
 
-    def load_memory_variables(self, inputs: dict) -> dict:
+    def load_memory_variables(self, inputs: dict) -> dict:  # pylint: disable=unused-argument
         """Get current memory state including summary and recent messages."""
         recent_messages = "\n".join([
             f"User: {msg['input']}\nAssistant: {msg['output']}"
@@ -76,4 +76,3 @@ class SlidingWindowMemory:
             memory_content += f"Recent messages:\n{recent_messages}"
 
         return {self.memory_key: memory_content}
-
