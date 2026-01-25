@@ -3,25 +3,29 @@ Unit tests for RAGAssistant class.
 Tests initialization, document handling, and invocation.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock, call
+
 from src.rag_assistant import RAGAssistant
 
 
 class TestRAGAssistantInitialization:
     """Test RAGAssistant initialization and setup."""
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_initialization_success(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_initialization_success(self, mock_reasoning, mock_memory, mock_llm):
         """Test successful initialization of RAGAssistant."""
         # Setup mocks
         mock_llm.return_value.model_name = "gpt-4o-mini"
         mock_memory.return_value.memory = MagicMock()
         mock_memory.return_value.strategy = "summarization_sliding_window"
-        mock_reasoning.return_value.get_strategy_name.return_value = "RAG-Enhanced Reasoning"
+        mock_reasoning.return_value.get_strategy_name.return_value = (
+            "RAG-Enhanced Reasoning"
+        )
 
         # Initialize assistant
         assistant = RAGAssistant()
@@ -33,11 +37,11 @@ class TestRAGAssistantInitialization:
         assert assistant.chain is not None
         assert assistant.prompt_template is not None
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_llm_initialization(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_llm_initialization(self, mock_memory, mock_llm):
         """Test that LLM is properly initialized."""
         mock_llm.return_value.model_name = "llama-3.1-8b-instant"
         mock_memory.return_value.memory = MagicMock()
@@ -48,11 +52,11 @@ class TestRAGAssistantInitialization:
         mock_llm.assert_called_once()
         assert assistant.llm.model_name == "llama-3.1-8b-instant"
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_vectordb_initialization(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_vectordb_initialization(self, mock_memory, mock_vectordb, mock_llm):
         """Test that VectorDB is properly initialized."""
         mock_llm.return_value.model_name = "test-model"
         mock_memory.return_value.memory = MagicMock()
@@ -63,11 +67,11 @@ class TestRAGAssistantInitialization:
         mock_vectordb.assert_called_once()
         assert assistant.vector_db is not None
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_memory_manager_initialization(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_memory_manager_initialization(self, mock_memory, mock_llm):
         """Test that MemoryManager is properly initialized."""
         mock_llm.return_value.model_name = "test-model"
         mock_memory.return_value.memory = MagicMock()
@@ -79,15 +83,19 @@ class TestRAGAssistantInitialization:
         mock_memory.assert_called_once_with(llm=assistant.llm)
         assert assistant.memory_manager is not None
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_reasoning_strategy_initialization(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_reasoning_strategy_initialization(
+        self, mock_reasoning, mock_memory, mock_llm
+    ):
         """Test that ReasoningStrategyLoader is properly initialized."""
         mock_llm.return_value.model_name = "test-model"
         mock_memory.return_value.memory = MagicMock()
-        mock_reasoning.return_value.get_strategy_name.return_value = "RAG-Enhanced Reasoning"
+        mock_reasoning.return_value.get_strategy_name.return_value = (
+            "RAG-Enhanced Reasoning"
+        )
 
         assistant = RAGAssistant()
 
@@ -95,11 +103,11 @@ class TestRAGAssistantInitialization:
         mock_reasoning.assert_called_once()
         assert assistant.reasoning_strategy is not None
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_chain_building(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_chain_building(self, mock_memory, mock_llm):
         """Test that prompt template and chain are built correctly."""
         mock_llm.return_value.model_name = "test-model"
         mock_memory.return_value.memory = MagicMock()
@@ -114,11 +122,11 @@ class TestRAGAssistantInitialization:
 class TestRAGAssistantAddDocuments:
     """Test document addition functionality."""
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_add_documents_string_list(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_add_documents_string_list(self, mock_memory, mock_vectordb, mock_llm):
         """Test adding documents as list of strings."""
         mock_llm.return_value.model_name = "test-model"
         mock_vectordb_instance = MagicMock()
@@ -132,11 +140,11 @@ class TestRAGAssistantAddDocuments:
         # Verify documents added
         mock_vectordb_instance.add_documents.assert_called_once_with(documents)
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_add_documents_dict_list(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_add_documents_dict_list(self, mock_memory, mock_vectordb, mock_llm):
         """Test adding documents as list of dicts."""
         mock_llm.return_value.model_name = "test-model"
         mock_vectordb_instance = MagicMock()
@@ -146,18 +154,18 @@ class TestRAGAssistantAddDocuments:
         assistant = RAGAssistant()
         documents = [
             {"title": "Doc1", "content": "Content1"},
-            {"title": "Doc2", "content": "Content2"}
+            {"title": "Doc2", "content": "Content2"},
         ]
         assistant.add_documents(documents)
 
         # Verify documents added
         mock_vectordb_instance.add_documents.assert_called_once_with(documents)
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_add_empty_documents(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_add_empty_documents(self, mock_memory, mock_vectordb, mock_llm):
         """Test adding empty document list."""
         mock_llm.return_value.model_name = "test-model"
         mock_vectordb_instance = MagicMock()
@@ -175,11 +183,11 @@ class TestRAGAssistantAddDocuments:
 class TestRAGAssistantInvoke:
     """Test RAGAssistant invoke method."""
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_invoke_basic(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_invoke_basic(self, mock_memory, mock_vectordb, mock_llm):
         """Test basic invoke functionality."""
         mock_llm.return_value.model_name = "test-model"
         mock_vectordb_instance = MagicMock()
@@ -202,11 +210,11 @@ class TestRAGAssistantInvoke:
         assert response == "Test response"
         mock_vectordb_instance.search.assert_called_once()
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_invoke_context_retrieval(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_invoke_context_retrieval(self, mock_memory, mock_vectordb, mock_llm):
         """Test that invoke retrieves context from vector database."""
         mock_llm.return_value.model_name = "test-model"
         mock_vectordb_instance = MagicMock()
@@ -223,13 +231,15 @@ class TestRAGAssistantInvoke:
         assistant.invoke("Test query")
 
         # Verify search was called with correct query
-        mock_vectordb_instance.search.assert_called_once_with(query="Test query", n_results=3)
+        mock_vectordb_instance.search.assert_called_once_with(
+            query="Test query", n_results=3
+        )
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_invoke_custom_n_results(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_invoke_custom_n_results(self, mock_memory, mock_vectordb, mock_llm):
         """Test invoke with custom n_results parameter."""
         mock_llm.return_value.model_name = "test-model"
         mock_vectordb_instance = MagicMock()
@@ -244,13 +254,15 @@ class TestRAGAssistantInvoke:
         assistant.invoke("Test query", n_results=5)
 
         # Verify n_results parameter is used
-        mock_vectordb_instance.search.assert_called_once_with(query="Test query", n_results=5)
+        mock_vectordb_instance.search.assert_called_once_with(
+            query="Test query", n_results=5
+        )
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_invoke_saves_to_memory(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_invoke_saves_to_memory(self, mock_memory, mock_vectordb, mock_llm):
         """Test that invoke saves conversation to memory."""
         mock_llm.return_value.model_name = "test-model"
         mock_vectordb_instance = MagicMock()
@@ -267,15 +279,14 @@ class TestRAGAssistantInvoke:
 
         # Verify memory was updated
         mock_memory_instance.add_message.assert_called_once_with(
-            input_text="User question",
-            output_text="Assistant response"
+            input_text="User question", output_text="Assistant response"
         )
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_invoke_with_empty_context(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_invoke_with_empty_context(self, mock_memory, mock_vectordb, mock_llm):
         """Test invoke when no documents are retrieved."""
         mock_llm.return_value.model_name = "test-model"
         mock_vectordb_instance = MagicMock()
@@ -285,7 +296,9 @@ class TestRAGAssistantInvoke:
 
         assistant = RAGAssistant()
         assistant.chain = MagicMock()
-        assistant.chain.invoke.return_value = "I'm sorry, that information is not known to me."
+        assistant.chain.invoke.return_value = (
+            "I'm sorry, that information is not known to me."
+        )
 
         response = assistant.invoke("Out of scope query")
 
@@ -297,11 +310,11 @@ class TestRAGAssistantInvoke:
 class TestRAGAssistantExceptionHandling:
     """Test exception handling in RAGAssistant."""
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_vectordb_connection_error(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_vectordb_connection_error(self, mock_memory, mock_vectordb, mock_llm):
         """Test handling of VectorDB connection errors."""
         mock_llm.return_value.model_name = "test-model"
         mock_vectordb.side_effect = Exception("Failed to connect to ChromaDB")
@@ -311,11 +324,13 @@ class TestRAGAssistantExceptionHandling:
         with pytest.raises(Exception):
             RAGAssistant()
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_reasoning_strategy_load_error(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_reasoning_strategy_load_error(
+        self, mock_reasoning, mock_memory, mock_vectordb, mock_llm
+    ):
         """Test handling of ReasoningStrategyLoader errors."""
         mock_llm.return_value.model_name = "test-model"
         mock_vectordb_instance = MagicMock()
@@ -327,11 +342,11 @@ class TestRAGAssistantExceptionHandling:
         assistant = RAGAssistant()
         assert assistant.reasoning_strategy is None
 
-    @patch('src.rag_assistant.initialize_llm')
-    @patch('src.rag_assistant.VectorDB')
-    @patch('src.rag_assistant.MemoryManager')
-    @patch('src.rag_assistant.ReasoningStrategyLoader')
-    def test_invoke_llm_error(self, mock_reasoning, mock_memory, mock_vectordb, mock_llm):
+    @patch("src.rag_assistant.initialize_llm")
+    @patch("src.rag_assistant.VectorDB")
+    @patch("src.rag_assistant.MemoryManager")
+    @patch("src.rag_assistant.ReasoningStrategyLoader")
+    def test_invoke_llm_error(self, mock_memory, mock_vectordb, mock_llm):
         """Test handling of LLM invocation errors."""
         mock_llm.return_value.model_name = "test-model"
         mock_vectordb_instance = MagicMock()

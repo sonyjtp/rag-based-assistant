@@ -3,8 +3,8 @@ Reasoning strategy loader and builder.
 Loads reasoning strategy configurations and provides methods to apply them.
 """
 
-from file_utils import load_yaml
 import config
+from file_utils import load_yaml
 from logger import logger
 
 
@@ -23,8 +23,10 @@ class ReasoningStrategyLoader:
         self.config_path = config_path
         self.strategies = load_yaml(config_path).get("reasoning_strategies", {})
         self.active_strategy = config.REASONING_STRATEGY
-        logger.info("Reasoning strategy loader initialized with strategy: %s",
-                    self.active_strategy)
+        logger.info(
+            "Reasoning strategy loader initialized with strategy: %s",
+            self.active_strategy,
+        )
 
     def get_active_strategy(self) -> dict:
         """
@@ -106,7 +108,7 @@ class ReasoningStrategyLoader:
         prompt_parts = [
             f"Reasoning Strategy: {name}",
             f"Description: {description}",
-            "Instructions:"
+            "Instructions:",
         ]
 
         for i, instruction in enumerate(instructions, 1):

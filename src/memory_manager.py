@@ -7,8 +7,8 @@ dependencies (PyYAML, langchain) are not available.
 """
 
 from config import MEMORY_STRATEGIES_FPATH, MEMORY_STRATEGY
-from sliding_window_memory import SlidingWindowMemory
 from logger import logger
+from sliding_window_memory import SlidingWindowMemory
 
 # Make PyYAML optional to avoid import errors in lightweight environments
 try:
@@ -20,8 +20,8 @@ except ImportError:  # pragma: no cover - optional dependency
 # we avoid import-outside-toplevel lint warnings. If unavailable, set to None.
 try:
     from langchain.memory import (  # type: ignore
-        ConversationSummaryMemory,
         ConversationBufferMemory,
+        ConversationSummaryMemory,
     )
 except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional dependency
     ConversationSummaryMemory = None  # type: ignore
@@ -73,9 +73,7 @@ class MemoryManager:
     def _initialize_sliding_window_memory(self):
         """Initialize sliding window memory strategy."""
         window_size = self.config.get("parameters", {}).get("window_size", 20)
-        memory_key = self.config.get("parameters", {}).get(
-            "memory_key", "chat_history"
-        )
+        memory_key = self.config.get("parameters", {}).get("memory_key", "chat_history")
         self.memory = SlidingWindowMemory(
             llm=self.llm,
             window_size=window_size,

@@ -4,6 +4,7 @@ Summarizes conversation in fixed-size windows to manage token usage efficiently.
 """
 
 from collections import deque
+
 from logger import logger
 
 
@@ -29,10 +30,7 @@ class SlidingWindowMemory:
         """Add a message pair to the sliding window."""
         input_text = inputs.get("input", "")
         output_text = outputs.get("output", "")
-        self.messages.append({
-            "input": input_text,
-            "output": output_text
-        })
+        self.messages.append({"input": input_text, "output": output_text})
 
         # When window is full, create a summary and reset
         if len(self.messages) == self.window_size:
@@ -44,17 +42,24 @@ class SlidingWindowMemory:
             return
 
         # Format messages for summarization
-        window_text = "\n".join([
-            f"User: {msg['input']}\nAssistant: {msg['output']}"
-            for msg in self.messages
-        ])
+        window_text = "\n".join(
+            [
+                f"User: {msg['input']}\nAssistant: {msg['output']}"
+                for msg in self.messages
+            ]
+        )
 
         try:
             # Summarize using LLM
             prompt = f"Summarize the key points from this conversation segment:\n\n{window_text}"
             response = self.llm.invoke(prompt)
-            self.summary = response.content if hasattr(response, 'content') else str(response)
-        except (AttributeError, ValueError) as e:  # pylint: disable=broad-exception-caught
+            self.summary = (
+                response.content if hasattr(response, "content") else str(response)
+            )
+        except (
+            AttributeError,
+            ValueError,
+        ) as e:  # pylint: disable=broad-exception-caught
             logger.error("Error summarizing window: %s", e)
             self.summary = window_text
 
@@ -62,12 +67,16 @@ class SlidingWindowMemory:
         self.messages.clear()
         logger.info("Memory window shifted (summarized %d messages)", self.window_size)
 
-    def load_memory_variables(self, inputs: dict) -> dict:  # pylint: disable=unused-argument
+    def load_memory_variables(
+        self, inputs: dict
+    ) -> dict:  # pylint: disable=unused-argument
         """Get current memory state including summary and recent messages."""
-        recent_messages = "\n".join([
-            f"User: {msg['input']}\nAssistant: {msg['output']}"
-            for msg in self.messages
-        ])
+        recent_messages = "\n".join(
+            [
+                f"User: {msg['input']}\nAssistant: {msg['output']}"
+                for msg in self.messages
+            ]
+        )
 
         memory_content = ""
         if self.summary:

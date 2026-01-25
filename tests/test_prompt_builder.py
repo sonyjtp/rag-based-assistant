@@ -3,8 +3,8 @@ Unit tests for prompt builder module.
 Tests prompt construction, constraint enforcement, and reasoning strategy integration.
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from src.prompt_builder import build_system_prompts
 
 
@@ -73,7 +73,10 @@ class TestPromptBuilderConstraints:
         prompts = build_system_prompts()
         prompt_text = "\n".join(prompts)
 
-        assert "fallback" in prompt_text.lower() or "not use your general knowledge" in prompt_text.lower()
+        assert (
+            "fallback" in prompt_text.lower()
+            or "not use your general knowledge" in prompt_text.lower()
+        )
 
     def test_constraints_mention_etymology_example(self):
         """Test that constraints include etymology as explicit example."""
@@ -112,15 +115,30 @@ class TestPromptBuilderTone:
         prompt_text = "\n".join(prompts)
 
         # Should mention language style
-        assert any(word in prompt_text.lower() for word in ["formal", "clear", "precise", "language"])
+        assert any(
+            word in prompt_text.lower()
+            for word in ["formal", "clear", "precise", "language"]
+        )
 
     def test_tone_instructions_are_clear(self):
         """Test that tone instructions are specific and actionable."""
         prompts = build_system_prompts()
-        prompt_text = "\n".join(prompts)
+        "\n".join(prompts)
 
         # Tone section should exist
-        assert len([p for p in prompts if any(word in p.lower() for word in ["tone", "style", "formal", "clear"])]) > 0
+        assert (
+            len(
+                [
+                    p
+                    for p in prompts
+                    if any(
+                        word in p.lower()
+                        for word in ["tone", "style", "formal", "clear"]
+                    )
+                ]
+            )
+            > 0
+        )
 
 
 class TestPromptBuilderFormat:
@@ -145,20 +163,23 @@ class TestPromptBuilderFormat:
         prompts = build_system_prompts()
         prompt_text = "\n".join(prompts)
 
-        assert any(word in prompt_text.lower() for word in ["concise", "brief", "short", "direct"])
+        assert any(
+            word in prompt_text.lower()
+            for word in ["concise", "brief", "short", "direct"]
+        )
 
 
 class TestPromptBuilderReasoningStrategy:
     """Test reasoning strategy integration in prompts."""
 
-    @patch('src.prompt_builder.ReasoningStrategyLoader')
+    @patch("src.prompt_builder.ReasoningStrategyLoader")
     def test_system_prompts_include_reasoning_strategy(self, mock_loader):
         """Test that system prompts include reasoning strategy instructions."""
         mock_loader_instance = MagicMock()
         mock_loader_instance.is_strategy_enabled.return_value = True
         mock_loader_instance.get_strategy_instructions.return_value = [
             "Test instruction 1",
-            "Test instruction 2"
+            "Test instruction 2",
         ]
         mock_loader_instance.get_strategy_name.return_value = "Test Strategy"
         mock_loader.return_value = mock_loader_instance
@@ -169,7 +190,7 @@ class TestPromptBuilderReasoningStrategy:
         # Should contain reasoning strategy
         assert "Test instruction" in prompt_text or "reasoning" in prompt_text.lower()
 
-    @patch('src.prompt_builder.ReasoningStrategyLoader')
+    @patch("src.prompt_builder.ReasoningStrategyLoader")
     def test_rag_enhanced_reasoning_instructions_included(self, mock_loader):
         """Test that RAG-Enhanced reasoning instructions are included."""
         mock_loader_instance = MagicMock()
@@ -177,7 +198,7 @@ class TestPromptBuilderReasoningStrategy:
         mock_loader_instance.get_strategy_instructions.return_value = [
             "First, use the retrieved documents as your knowledge base.",
             "Always ground your answer in the provided documents.",
-            "Do not speculate beyond what is explicitly stated."
+            "Do not speculate beyond what is explicitly stated.",
         ]
         mock_loader_instance.get_strategy_name.return_value = "RAG-Enhanced Reasoning"
         mock_loader.return_value = mock_loader_instance
@@ -189,7 +210,7 @@ class TestPromptBuilderReasoningStrategy:
         assert "document" in prompt_text.lower()
         assert "ground" in prompt_text.lower() or "speculate" in prompt_text.lower()
 
-    @patch('src.prompt_builder.ReasoningStrategyLoader')
+    @patch("src.prompt_builder.ReasoningStrategyLoader")
     def test_disabled_strategy_not_included(self, mock_loader):
         """Test that disabled strategies are not included."""
         mock_loader_instance = MagicMock()
@@ -201,7 +222,7 @@ class TestPromptBuilderReasoningStrategy:
         # Should still have other prompts
         assert len(prompts) > 0
 
-    @patch('src.prompt_builder.ReasoningStrategyLoader')
+    @patch("src.prompt_builder.ReasoningStrategyLoader")
     def test_strategy_load_error_handled_gracefully(self, mock_loader):
         """Test that strategy loading errors are handled gracefully."""
         mock_loader.side_effect = Exception("Failed to load strategy")
@@ -222,7 +243,10 @@ class TestPromptBuilderSpecialCases:
         prompt_text = "\n".join(prompts)
 
         # Should mention follow-up handling
-        assert any(phrase in prompt_text for phrase in ["Tell me more", "continue", "follow-up"])
+        assert any(
+            phrase in prompt_text
+            for phrase in ["Tell me more", "continue", "follow-up"]
+        )
 
     def test_prompts_handle_polite_greetings(self):
         """Test that prompts handle polite greetings."""
@@ -238,7 +262,10 @@ class TestPromptBuilderSpecialCases:
         prompt_text = "\n".join(prompts)
 
         # Should mention unclear question handling
-        assert any(word in prompt_text.lower() for word in ["gibberish", "unclear", "nonsensical"])
+        assert any(
+            word in prompt_text.lower()
+            for word in ["gibberish", "unclear", "nonsensical"]
+        )
 
     def test_prompts_specify_related_topics(self):
         """Test that prompts specify related topics section."""

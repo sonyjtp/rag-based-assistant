@@ -2,13 +2,13 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-from llm_utils import initialize_llm
-from prompt_builder import build_system_prompts
-from vectordb import VectorDB
-from memory_manager import MemoryManager
-from reasoning_strategy_loader import ReasoningStrategyLoader
 from config import RETRIEVAL_K_DEFAULT
+from llm_utils import initialize_llm
 from logger import logger
+from memory_manager import MemoryManager
+from prompt_builder import build_system_prompts
+from reasoning_strategy_loader import ReasoningStrategyLoader
+from vectordb import VectorDB
 
 
 class RAGAssistant:
@@ -28,15 +28,22 @@ class RAGAssistant:
         # Initialize conversation memory
         self.memory_manager = MemoryManager(llm=self.llm)
         if self.memory_manager.memory:
-            logger.info("Memory manager initialized with strategy: %s",
-                        self.memory_manager.strategy)
+            logger.info(
+                "Memory manager initialized with strategy: %s",
+                self.memory_manager.strategy,
+            )
 
         # Initialize reasoning strategy
         try:
             self.reasoning_strategy = ReasoningStrategyLoader()
-            logger.info("Reasoning strategy loaded: %s",
-                        self.reasoning_strategy.get_strategy_name())
-        except (AttributeError, ValueError) as e:  # pylint: disable=broad-exception-caught
+            logger.info(
+                "Reasoning strategy loaded: %s",
+                self.reasoning_strategy.get_strategy_name(),
+            )
+        except (
+            AttributeError,
+            ValueError,
+        ) as e:  # pylint: disable=broad-exception-caught
             logger.error("Error loading reasoning strategy: %s", e)
             self.reasoning_strategy = None
 
@@ -45,16 +52,17 @@ class RAGAssistant:
     def _build_chain(self):
         """Build the prompt template and LLM chain."""
         system_prompts = build_system_prompts()
-        self.prompt_template = ChatPromptTemplate.from_messages([
-            ("system", "\n".join(system_prompts)),
-            ("human", "Context from documents:\n{context}\n\nQuestion: {question}")
-        ])
+        self.prompt_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", "\n".join(system_prompts)),
+                ("human", "Context from documents:\n{context}\n\nQuestion: {question}"),
+            ]
+        )
         logger.info("Prompt template for RAG Assistant created from system prompts.")
         self.chain = self.prompt_template | self.llm | StrOutputParser()
         logger.info("Function chain with prompt template, LLM, and parser built.")
 
-
-    def add_documents(self, documents:  list[str] |  list[dict[str, str]]) -> None:
+    def add_documents(self, documents: list[str] | list[dict[str, str]]) -> None:
         """
         Add documents to the knowledge base.
 
@@ -87,10 +95,7 @@ class RAGAssistant:
 
         context = "\n".join(flat_docs) if flat_docs else ""
 
-        response = self.chain.invoke({
-            "context": context,
-            "question": query
-        })
+        response = self.chain.invoke({"context": context, "question": query})
 
         # Save conversation to memory manager
         self.memory_manager.add_message(input_text=query, output_text=response)

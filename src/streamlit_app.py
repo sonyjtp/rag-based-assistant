@@ -6,11 +6,11 @@ from dotenv import load_dotenv
 
 from config import DATA_DIR
 from file_utils import load_documents
-from rag_assistant import RAGAssistant
 from logger import logger
+from rag_assistant import RAGAssistant
 
 # Set tokenizers parallelism to avoid warnings
-os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Load environment variables
 load_dotenv()
@@ -20,11 +20,12 @@ st.set_page_config(
     page_title="RAG Chatbot",
     page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 # Custom CSS for better styling
-st.markdown("""
+st.markdown(
+    """
     <style>
     body {
         background-color: #1e1e1e;
@@ -91,10 +92,12 @@ st.markdown("""
         color: #ffffff !important;
     }
     </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # Initialize session state
-if 'assistant' not in st.session_state:
+if "assistant" not in st.session_state:
     st.session_state.assistant = None
     st.session_state.documents_loaded = False
     st.session_state.chat_history = []
@@ -141,10 +144,12 @@ with st.sidebar:
 # Main content area
 st.markdown("<h1 class='title-text'>🤖 RAG-Based Chatbot</h1>", unsafe_allow_html=True)
 
-st.markdown("""
+st.markdown(
+    """
     This chatbot uses Retrieval-Augmented Generation (RAG) to answer questions based on a collection of documents.
     Ask any question about the documents below!
-""")
+"""
+)
 
 st.divider()
 
@@ -159,23 +164,29 @@ if st.session_state.initialized:
         with chat_container:
             for message in st.session_state.chat_history:
                 if message["role"] == "user":
-                    st.markdown(f"""
+                    st.markdown(
+                        f"""
                         <div class="chat-message user-message">
                             <div>
                                 <strong>You:</strong><br/>
                                 {message["content"]}
                             </div>
                         </div>
-                    """, unsafe_allow_html=True)
+                    """,
+                        unsafe_allow_html=True,
+                    )
                 else:
-                    st.markdown(f"""
+                    st.markdown(
+                        f"""
                         <div class="chat-message assistant-message">
                             <div>
                                 <strong>Assistant:</strong><br/>
                                 {message["content"]}
                             </div>
                         </div>
-                    """, unsafe_allow_html=True)
+                    """,
+                        unsafe_allow_html=True,
+                    )
 
         st.divider()
 
@@ -189,43 +200,42 @@ if st.session_state.initialized:
             user_input = st.text_input(
                 "Enter your question about the documents:",
                 placeholder="e.g., What is quantum computing? (Press Enter to send)",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
             )
 
         with col2:
-            send_button = st.form_submit_button("Send", use_container_width=True, type="primary")
+            send_button = st.form_submit_button(
+                "Send", use_container_width=True, type="primary"
+            )
 
     # Process user input outside the form
     if send_button and user_input:
         # Add user message to history
-        st.session_state.chat_history.append({
-            "role": "user",
-            "content": user_input
-        })
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
         logger.debug("User question: %s", user_input)
 
         # Get assistant response
-        status = st.status("🔍 Searching documents and generating response...",
-                          expanded=True)
+        status = st.status(
+            "🔍 Searching documents and generating response...", expanded=True
+        )
         try:
             response = st.session_state.assistant.invoke(user_input)
             logger.debug("Agent response received: %s", response[:100])
 
             # Clean up the response - remove markdown headers and separators
-            lines = response.split('\n')
+            lines = response.split("\n")
             cleaned_lines = []
             skip_next = False
 
             for i, line in enumerate(lines):  # pylint: disable=unused-variable
                 # Skip markdown headers (lines starting with # or **)
-                if (line.strip().startswith('#') or
-                    line.strip().startswith('**')):
+                if line.strip().startswith("#") or line.strip().startswith("**"):
                     skip_next = True
                     continue
                 # Skip separator lines (===, ---, etc.)
-                if (skip_next and
-                    (all(c in '=-_' for c in line.strip()) and
-                     len(line.strip()) > 3)):
+                if skip_next and (
+                    all(c in "=-_" for c in line.strip()) and len(line.strip()) > 3
+                ):
                     skip_next = False
                     continue
                 # Skip empty lines at the start
@@ -233,13 +243,14 @@ if st.session_state.initialized:
                     cleaned_lines.append(line)
                 skip_next = False
 
-            cleaned_response = '\n'.join(cleaned_lines).strip()  # pylint: disable=invalid-name
+            cleaned_response = "\n".join(
+                cleaned_lines
+            ).strip()  # pylint: disable=invalid-name
             logger.debug("Cleaned response: %s", cleaned_response[:100])
 
-            st.session_state.chat_history.append({
-                "role": "assistant",
-                "content": cleaned_response
-            })
+            st.session_state.chat_history.append(
+                {"role": "assistant", "content": cleaned_response}
+            )
             status.update(label="✅ Response generated!", state="complete")
             st.rerun()
         except Exception as e:  # pylint: disable=broad-exception-caught

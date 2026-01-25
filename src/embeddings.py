@@ -4,6 +4,7 @@ Handles device detection and embedding model setup.
 """
 
 import os
+
 import torch
 from langchain_huggingface import HuggingFaceEmbeddings
 

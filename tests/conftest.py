@@ -3,35 +3,31 @@ Pytest configuration file for RAG Assistant tests.
 Defines fixtures, plugins, and test behavior.
 """
 
-import sys
 import os
-
-# Add src directory to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+import sys
+from unittest.mock import MagicMock
 
 import pytest
 
+# Add src directory to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 # ============================================================================
 # PYTEST CONFIGURATION
 # ============================================================================
 
+
 def pytest_configure(config):
     """Configure pytest with custom settings."""
-    config.addinivalue_line(
-        "markers", "unit: mark test as a unit test"
-    )
-    config.addinivalue_line(
-        "markers", "integration: mark test as an integration test"
-    )
-    config.addinivalue_line(
-        "markers", "slow: mark test as slow running"
-    )
+    config.addinivalue_line("markers", "unit: mark test as a unit test")
+    config.addinivalue_line("markers", "integration: mark test as an integration test")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
 
 
 # ============================================================================
 # SHARED FIXTURES
 # ============================================================================
+
 
 @pytest.fixture(scope="session")
 def test_config():
@@ -46,7 +42,6 @@ def test_config():
 @pytest.fixture
 def mock_logger():
     """Provide mock logger for testing."""
-    from unittest.mock import MagicMock
     return MagicMock()
 
 
@@ -54,7 +49,8 @@ def mock_logger():
 # PYTEST HOOKS
 # ============================================================================
 
-def pytest_collection_modifyitems(config, items):
+
+def pytest_collection_modifyitems(items):
     """Modify test collection to add markers."""
     for item in items:
         # Mark all tests in test_hallucination_prevention.py as integration

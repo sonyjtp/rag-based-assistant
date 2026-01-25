@@ -2,23 +2,19 @@
 import os
 
 # Optional dotenv import (not required in all environments)
-try:
-    from dotenv import load_dotenv  # type: ignore
-except ImportError:  # pragma: no cover - optional dependency
-    def load_dotenv(*_args, **_kwargs):  # pylint: disable=missing-function-docstring
-        """Stub for load_dotenv when python-dotenv is not installed."""
-        return False
+from dotenv import load_dotenv
 
 from config import DATA_DIR
 from file_utils import load_documents
-from rag_assistant import RAGAssistant
 from logger import logger
+from rag_assistant import RAGAssistant
 
 # Ensure tokenizers won't use parallelism
-os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 # Load environment variables
 load_dotenv()
+
 
 def main():
     """Main function to demonstrate the RAG assistant."""

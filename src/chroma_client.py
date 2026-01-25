@@ -4,12 +4,14 @@ ChromaDB client wrapper for managing vector database connections and collections
 
 import os
 from typing import Any
+
 import chromadb
+
 from config import (
     CHROMA_API_KEY_ENV,
-    CHROMA_TENANT_ENV,
-    CHROMA_DATABASE_ENV,
     CHROMA_COLLECTION_METADATA,
+    CHROMA_DATABASE_ENV,
+    CHROMA_TENANT_ENV,
 )
 from logger import logger
 

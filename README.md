@@ -175,7 +175,10 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Install development/test dependencies (optional)
-pip install -r requirements-test.txt
+pip install -r requirements-dev.txt
+
+# Set up pre-commit hooks for automatic code formatting
+pre-commit install
 
 # Verify installation
 python -c "import langchain; print('✓ LangChain installed')"

@@ -4,10 +4,10 @@ Defines LLM providers, models, and other application settings.
 """
 
 import os
-from langchain_openai import ChatOpenAI
-from langchain_groq import ChatGroq
-from langchain_google_genai import ChatGoogleGenerativeAI
 
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 
 # ============================================================================
 # PATHS & DIRECTORIES
@@ -79,7 +79,7 @@ CHROMA_DATABASE_ENV = "CHROMA_DATABASE"
 CHROMA_TENANT_ENV = "CHROMA_TENANT"
 CHROMA_COLLECTION_METADATA = {
     "hnsw:space": "cosine",
-    "description": "RAG document collection"
+    "description": "RAG document collection",
 }
 
 # Vector Database Collections
@@ -112,7 +112,9 @@ MEMORY_STRATEGIES_FPATH = os.path.join(ROOT_DIR, "config", "memory_strategies.ya
 MEMORY_STRATEGY = "summarization_sliding_window"
 
 # Reasoning Strategy Configuration
-REASONING_STRATEGIES_FPATH = os.path.join(ROOT_DIR, "config", "reasoning_strategies.yaml")
+REASONING_STRATEGIES_FPATH = os.path.join(
+    ROOT_DIR, "config", "reasoning_strategies.yaml"
+)
 # Options: rag_enhanced_reasoning, simple_few_shot, none
 REASONING_STRATEGY = "rag_enhanced_reasoning"
 

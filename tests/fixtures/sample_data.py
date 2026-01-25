@@ -9,11 +9,16 @@ import pytest
 def sample_documents():
     """Provide sample documents for testing."""
     return [
-        "Artificial intelligence is transforming how we process information. Machine learning algorithms learn from data to make predictions.",
-        "Quantum computing represents a paradigm shift in computational power, using quantum bits (qubits) for processing.",
-        "Ancient Egyptian civilization was one of the most advanced societies of its time, with impressive architectural achievements.",
-        "Contemporary art encompasses diverse movements and styles, reflecting modern societal values and technological innovation.",
-        "Consciousness research explores the nature of human awareness and subjective experience through neuroscience and philosophy.",
+        "Artificial intelligence is transforming how we process information. Machine learning algorithms learn from "
+        "data to make predictions.",
+        "Quantum computing represents a paradigm shift in computational power, using quantum bits (qubits) for "
+        "processing.",
+        "Ancient Egyptian civilization was one of the most advanced societies of its time, with impressive "
+        "architectural  achievements.",
+        "Contemporary art encompasses diverse movements and styles, reflecting modern societal values and "
+        "technological innovation.",
+        "Consciousness research explores the nature of human awareness and subjective experience through neuroscience "
+        "and philosophy.",
     ]
 
 
@@ -85,7 +90,7 @@ def sample_queries_special_cases():
         "thanks": "Thank you for your help!",
         "goodbye": "Goodbye!",
         "vague": "What topics do you have?",
-        "about_limitations": "What are your limitations?"
+        "about_limitations": "What are your limitations?",
     }
 
 
@@ -93,9 +98,9 @@ def sample_queries_special_cases():
 def sample_context():
     """Provide sample context retrieved from documents."""
     return """
-    Artificial intelligence (AI) refers to the simulation of human intelligence by machines, 
-    particularly computer systems. These systems are designed to perform tasks that typically 
-    require human intelligence, such as learning from experience, recognizing patterns, 
+    Artificial intelligence (AI) refers to the simulation of human intelligence by machines,
+    particularly computer systems. These systems are designed to perform tasks that typically
+    require human intelligence, such as learning from experience, recognizing patterns,
     understanding language, and making decisions.
     """
 
@@ -111,7 +116,10 @@ def search_results_with_docs():
     """Provide mock search results with documents."""
     return {
         "documents": [
-            ["Artificial intelligence is a field of computer science.", "Machine learning is a subset of AI."],
+            [
+                "Artificial intelligence is a field of computer science.",
+                "Machine learning is a subset of AI.",
+            ],
             ["Quantum computing uses quantum mechanics principles."],
         ],
         "ids": [["doc1", "doc2"], ["doc3"]],
