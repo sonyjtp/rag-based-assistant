@@ -8,7 +8,7 @@
 [![Code Coverage](https://img.shields.io/badge/coverage-91.28%25-brightgreen.svg)]()
 [![Pylint](https://github.com/sonyjtp/rag-based-assistant/actions/workflows/pylint.yml/badge.svg)](https://github.com/sonyjtp/rag-based-assistant/actions/workflows/pylint.yml)
 
-[Quick Start](#-quick-start) • [Features](#-features) • [Installation](#-installation) • [Contributing](#-contributing)
+[Quick Start](#-quick-start) • [Features](#-features) • [Installation](#-installation)
 
 
 ---
@@ -28,7 +28,6 @@
 - [Memory Management](#-memory-management)
 - [Reasoning Strategies](#-reasoning-strategies)
 - [Troubleshooting](#-troubleshooting)
-- [Contributing](#-contributing)
 - [License](#-license)
 
 ---
