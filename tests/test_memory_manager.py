@@ -90,10 +90,10 @@ class TestMemoryMessageHandling:
                     assert mock_memory.save_context.called
 
     def test_get_memory_variables(self):
-        """Test retrieving memory variables."""
+        """Test retrieving memory variables through MemoryManager."""
         mock_llm = MagicMock()
         mock_memory = MagicMock()
-        mock_memory.load_memory_variables.return_value = {"history": "Chat history here"}
+        mock_memory.load_memory_variables.return_value = {"chat_history": "User: Hello\nAssistant: Hi"}
 
         with patch('src.memory_manager.MEMORY_STRATEGY', 'conversation_buffer_memory'):
             with patch('src.memory_manager.MEMORY_STRATEGIES_FPATH', '/path'):
@@ -101,9 +101,64 @@ class TestMemoryMessageHandling:
                     manager = MemoryManager(llm=mock_llm)
                     manager.memory = mock_memory
 
-                    variables = manager.memory.load_memory_variables({})
+                    # Call the MemoryManager method, not memory.load_memory_variables
+                    variables = manager.get_memory_variables()
 
-                    assert "history" in variables
+                    assert "chat_history" in variables
+                    assert variables["chat_history"] == "User: Hello\nAssistant: Hi"
+
+    def test_get_memory_variables_with_no_memory(self):
+        """Test get_memory_variables when memory is None."""
+        mock_llm = MagicMock()
+
+        with patch('src.memory_manager.MEMORY_STRATEGY', 'none'):
+            with patch('src.memory_manager.MEMORY_STRATEGIES_FPATH', '/path'):
+                with patch('builtins.open', mock_open(read_data="{}")):
+                    manager = MemoryManager(llm=mock_llm)
+                    manager.memory = None
+
+                    variables = manager.get_memory_variables()
+
+                    # Should return empty dict when memory is None
+                    assert variables == {}
+
+    def test_get_memory_variables_load_error(self):
+        """Test get_memory_variables handles loading errors gracefully."""
+        mock_llm = MagicMock()
+        mock_memory = MagicMock()
+        mock_memory.load_memory_variables.side_effect = Exception("Load error")
+
+        with patch('src.memory_manager.MEMORY_STRATEGY', 'conversation_buffer_memory'):
+            with patch('src.memory_manager.MEMORY_STRATEGIES_FPATH', '/path'):
+                with patch('builtins.open', mock_open(read_data="{}")):
+                    manager = MemoryManager(llm=mock_llm)
+                    manager.memory = mock_memory
+
+                    # Should not raise, should return empty dict
+                    variables = manager.get_memory_variables()
+
+                    assert variables == {}
+
+    def test_get_memory_variables_multiple_keys(self):
+        """Test get_memory_variables with multiple keys in response."""
+        mock_llm = MagicMock()
+        mock_memory = MagicMock()
+        mock_memory.load_memory_variables.return_value = {
+            "chat_history": "Conversation",
+            "summary": "Summary text"
+        }
+
+        with patch('src.memory_manager.MEMORY_STRATEGY', 'summarization_sliding_window'):
+            with patch('src.memory_manager.MEMORY_STRATEGIES_FPATH', '/path'):
+                with patch('builtins.open', mock_open(read_data="{}")):
+                    manager = MemoryManager(llm=mock_llm)
+                    manager.memory = mock_memory
+
+                    variables = manager.get_memory_variables()
+
+                    assert "chat_history" in variables
+                    assert "summary" in variables
+                    assert len(variables) == 2
 
 
 class TestMemoryStrategySwitching:

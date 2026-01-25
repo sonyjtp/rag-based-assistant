@@ -52,19 +52,15 @@ class VectorDB:
         docs = documents if isinstance(documents, list) else [documents]
         chunks_with_metadata = [
             (chunk, {
-                'title': doc.get('title', ''),
-                'filename': doc.get('filename', ''),
-                'tags': doc.get('tags', '')
-            } if isinstance(doc, dict) else {
-                'title': '',
-                'filename': '',
-                'tags': ''
+                'title': doc.get('title', '') if isinstance(doc, dict) else '',
+                'filename': doc.get('filename', '') if isinstance(doc, dict) else '',
+                'tags': doc.get('tags', '') if isinstance(doc, dict) else ''
             })
             for doc in docs
             for chunk in self.text_splitter.split_text(
                 doc['content'] if isinstance(doc, dict) else doc
             )
-            if chunk.strip() != doc.get('title', '').strip()
+            if chunk.strip() != (doc.get('title', '').strip() if isinstance(doc, dict) else '')
         ]
         return chunks_with_metadata
 
