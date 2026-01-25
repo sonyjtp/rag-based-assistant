@@ -112,4 +112,3 @@ python src/app.py
 ```
 
 This provides the same RAG functionality without the web UI.
-

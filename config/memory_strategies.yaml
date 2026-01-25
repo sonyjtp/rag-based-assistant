@@ -24,4 +24,3 @@ summarization_sliding_window:
     memory_key: "chat_history"
     window_size: 30
     summarization_prompt: "Summarize the key points from this conversation segment in a few sentences."
-
