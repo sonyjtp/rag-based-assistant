@@ -190,8 +190,7 @@ class TestRAGAssistantInvoke:
         assistant.chain = MagicMock()
         assistant.chain.invoke.return_value = "Test response"
 
-        # Use query with action verb so it won't be auto-prefixed
-        response = assistant.invoke("What is this?")
+        response = assistant.invoke("Test query")
 
         if has_documents:
             assert response == "Test response"
@@ -212,12 +211,10 @@ class TestRAGAssistantInvoke:
         assistant.chain = MagicMock()
         assistant.chain.invoke.return_value = "Response"
 
-        # Use a query with action verb so it won't be auto-prefixed
-        assistant.invoke("What is AI?")
+        assistant.invoke("Test query")
 
-        # Query should NOT be prefixed since it has "What"
         mock_components["vectordb_instance"].search.assert_called_once_with(
-            query="What is AI?", n_results=3
+            query="Test query", n_results=3
         )
 
     @pytest.mark.parametrize(

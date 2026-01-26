@@ -1,17 +1,16 @@
 """RAG-based AI assistant using ChromaDB and multiple LLM providers."""
-
-import os
-
-import yaml
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-from config import DISTANCE_THRESHOLD_DEFAULT, RETRIEVAL_K_DEFAULT
+from config import (
+    DISTANCE_THRESHOLD_DEFAULT,
+    META_QUESTION_KEYWORDS,
+    RETRIEVAL_K_DEFAULT,
+)
 from llm_utils import initialize_llm
 from logger import logger
 from memory_manager import MemoryManager
 from prompt_builder import build_system_prompts
-from query_classifier import QUERY_CLASSIFIERS, QueryType
 from reasoning_strategy_loader import ReasoningStrategyLoader
 from vectordb import VectorDB
 
@@ -74,133 +73,29 @@ class RAGAssistant:
         self.chain = self.prompt_template | self.llm | StrOutputParser()
         logger.info("Function chain with prompt template, LLM, and parser built.")
 
-    def _classify_query(self, query: str) -> QueryType:
-        """
-        Classify query into type (unsafe > vague > meta > document > regular).
-
-        Priority order ensures safety first, then broad topic questions,
-        then capability questions, then knowledge base questions, then regular Q&A.
-
-        Args:
-            query: User query string
-
-        Returns:
-            QueryType enum value
-        """
-        # Priority 1: Check for unsafe content (highest priority)
-        if QUERY_CLASSIFIERS["unsafe"]["pattern"].search(query):
-            logger.warning(f"Unsafe query classified: {query}")
-            return QueryType.UNSAFE
-
-        # Priority 2: Check for meta-questions (identity/capabilities)
-        if QUERY_CLASSIFIERS["meta"]["pattern"].search(query):
-            logger.debug(f"Meta-question classified: {query}")
-            return QueryType.META
-
-        # Priority 3: Check for document/knowledge-base questions
-        if QUERY_CLASSIFIERS["document"]["pattern"].search(query):
-            logger.debug(f"Document question classified: {query}")
-            return QueryType.DOCUMENT
-
-        # Priority 4: Use LLM to detect vague/broad topic requests
-        try:
-            config_path = os.path.join(
-                os.path.dirname(__file__), "..", "config", "prompt-config.yaml"
-            )
-            with open(config_path, encoding="utf-8") as f:
-                config = yaml.safe_load(f)
-
-            vague_template = config.get("query_vague_detection", {}).get("template", "")
-            if vague_template:
-                prompt_text = vague_template.format(query=query)
-                response = self.llm.invoke(prompt_text).strip().lower()
-
-                if response in ["yes", "true"]:
-                    logger.info(f"Vague question classified by LLM: {query}")
-                    return QueryType.VAGUE
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            logger.debug(f"Error in LLM vague detection: {e}, treating as regular")
-
-        # Default: Regular Q&A query
-        logger.debug(f"Regular question classified: {query}")
-        return QueryType.REGULAR
-
-    def _validate_and_log_similarity(
-        self, query_type: QueryType, flat_docs: list, flat_distances: list
-    ) -> tuple[bool, str]:
-        """
-        Validate documents meet similarity threshold and log results.
-
-        Returns:
-            (is_valid, rejection_message) tuple.
-            is_valid=True means proceed, False means reject with message.
-        """
-        # Log similarity information for all queries
-        if flat_docs and flat_distances:
-            similarity = 1 - flat_distances[0]
-            distance = flat_distances[0]
-            logger.debug(
-                f"Document search: {query_type.value} question | "
-                f"docs_found={len(flat_docs)} | "
-                f"distance={distance:.3f} | similarity={similarity:.3f} | "
-                f"threshold={DISTANCE_THRESHOLD_DEFAULT}"
-            )
-        elif not flat_docs:
-            logger.warning(
-                f"Document search: {query_type.value} question | docs_found=0"
-            )
-
-        # Check threshold only for REGULAR questions
-        if query_type != QueryType.REGULAR:
-            return True, ""
-
-        # REGULAR questions require high similarity
-        if not flat_docs:
-            logger.warning("Query rejected - no documents found")
-            return False, (
-                "I couldn't find information in my knowledge base that closely matches your question. "
-                "Could you try rephrasing it or asking about a different topic? "
-                "This helps me provide more accurate answers based on the documents I have access to."
-            )
-
-        if flat_distances and flat_distances[0] > DISTANCE_THRESHOLD_DEFAULT:
-            logger.warning(
-                f"Query rejected - low similarity (distance={flat_distances[0]:.3f}, "
-                f"threshold={DISTANCE_THRESHOLD_DEFAULT})"
-            )
-            return False, (
-                "I couldn't find information in my knowledge base that closely matches your question. "
-                "Could you try rephrasing it or asking about a different topic? "
-                "This helps me provide more accurate answers based on the documents I have access to."
-            )
-
-        return True, ""
-
     def add_documents(self, documents: list[str] | list[dict[str, str]]) -> None:
         """
-        # ...existing code...
+        Add documents to the knowledge base.
+
+        Args:
+            documents: List of documents
         """
         self.vector_db.add_documents(documents)
 
     def invoke(self, query: str, n_results: int = RETRIEVAL_K_DEFAULT) -> str:
         """
-        Query the RAG assistant with query classification and type-based handling.
+        Query the RAG assistant.
 
         Args:
             query: User's input
             n_results: Number of relevant chunks to retrieve
 
         Returns:
-            String answer from the LLM based on retrieved context and query type
+            String answer from the LLM based on retrieved context
         """
-        # Classify query (priority order: unsafe > meta > document > vague > regular)
-        query_type = self._classify_query(query)
-        logger.debug(f"Query classified as: {query_type.value}")
-
-        # Handle unsafe queries first (hard block before any processing)
-        if query_type == QueryType.UNSAFE:
-            logger.warning(f"Unsafe query blocked: {query}")
-            return "I can't assist with that query. Please ask about topics covered in my knowledge base."
+        is_meta_question = any(
+            keyword.lower() in query.lower() for keyword in META_QUESTION_KEYWORDS
+        )
 
         try:
             search_results = self.vector_db.search(query=query, n_results=n_results)
@@ -231,18 +126,22 @@ class RAGAssistant:
             else:
                 flat_distances = distances
 
-        # Validate similarity and log results
-        is_valid, rejection_message = self._validate_and_log_similarity(
-            query_type, flat_docs, flat_distances
-        )
-        if not is_valid:
-            return rejection_message
+        # For meta-questions, use results even with lower similarity
+        # For regular questions, require higher similarity (distance <= threshold)
+        if not is_meta_question and (
+            not flat_docs
+            or (flat_distances and flat_distances[0] > DISTANCE_THRESHOLD_DEFAULT)
+        ):
+            return (
+                "I couldn't find information in my knowledge base that closely matches your question. "
+                "Could you try rephrasing it or asking about a different topic? "
+                "This helps me provide more accurate answers based on the documents I have access to."
+            )
 
         context = "\n".join(flat_docs) if flat_docs else ""
 
         try:
             response = self.chain.invoke({"context": context, "question": query})
-            logger.debug(f"Response generated for {query_type.value} question")
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error(f"Error invoking chain: {e}")
             return (
