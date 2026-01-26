@@ -1,16 +1,14 @@
 """RAG-based AI assistant using ChromaDB and multiple LLM providers."""
+
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-from config import (
-    DISTANCE_THRESHOLD_DEFAULT,
-    META_QUESTION_KEYWORDS,
-    RETRIEVAL_K_DEFAULT,
-)
+from config import DISTANCE_THRESHOLD_DEFAULT, RETRIEVAL_K_DEFAULT
 from llm_utils import initialize_llm
 from logger import logger
 from memory_manager import MemoryManager
 from prompt_builder import build_system_prompts
+from query_classifier import QUERY_CLASSIFIERS, QueryType
 from reasoning_strategy_loader import ReasoningStrategyLoader
 from vectordb import VectorDB
 
@@ -73,29 +71,205 @@ class RAGAssistant:
         self.chain = self.prompt_template | self.llm | StrOutputParser()
         logger.info("Function chain with prompt template, LLM, and parser built.")
 
-    def add_documents(self, documents: list[str] | list[dict[str, str]]) -> None:
+    def _classify_query(self, query: str) -> QueryType:
         """
-        Add documents to the knowledge base.
+        Classify query into type (unsafe > vague > meta > document > regular).
+
+        Priority order ensures safety first, then broad topic questions,
+        then capability questions, then knowledge base questions, then regular Q&A.
 
         Args:
-            documents: List of documents
+            query: User query string
+
+        Returns:
+            QueryType enum value
+        """
+        # Priority 1: Check for unsafe content (highest priority)
+        if QUERY_CLASSIFIERS["unsafe"]["pattern"].search(query):
+            logger.warning(f"Unsafe query classified: {query}")
+            return QueryType.UNSAFE
+
+        # Priority 2: Check for vague/broad topic questions
+        if QUERY_CLASSIFIERS["vague"]["pattern"].search(query):
+            logger.info(f"Vague question classified: {query}")
+            return QueryType.VAGUE
+
+        # Priority 3: Check for meta-questions (identity/capabilities)
+        if QUERY_CLASSIFIERS["meta"]["pattern"].search(query):
+            logger.info(f"Meta-question classified: {query}")
+            return QueryType.META
+
+        # Priority 4: Check for document/knowledge-base questions
+        if QUERY_CLASSIFIERS["document"]["pattern"].search(query):
+            logger.info(f"Document question classified: {query}")
+            return QueryType.DOCUMENT
+
+        # Default: Regular Q&A query
+        logger.debug(f"Regular question classified: {query}")
+        return QueryType.REGULAR
+
+    def _validate_and_log_similarity(
+        self, query_type: QueryType, flat_docs: list, flat_distances: list
+    ) -> tuple[bool, str]:
+        """
+        Validate documents meet similarity threshold and log results.
+
+        Returns:
+            (is_valid, rejection_message) tuple.
+            is_valid=True means proceed, False means reject with message.
+        """
+        # Log similarity information for all queries
+        if flat_docs and flat_distances:
+            similarity = 1 - flat_distances[0]
+            distance = flat_distances[0]
+            logger.info(
+                f"Document search: {query_type.value} question | "
+                f"docs_found={len(flat_docs)} | "
+                f"distance={distance:.3f} | similarity={similarity:.3f} | "
+                f"threshold={DISTANCE_THRESHOLD_DEFAULT}"
+            )
+        elif not flat_docs:
+            logger.warning(
+                f"Document search: {query_type.value} question | docs_found=0"
+            )
+
+        # Check threshold only for REGULAR questions
+        if query_type != QueryType.REGULAR:
+            return True, ""
+
+        # REGULAR questions require high similarity
+        if not flat_docs:
+            logger.warning("Query rejected - no documents found")
+            return False, (
+                "I couldn't find information in my knowledge base that closely matches your question. "
+                "Could you try rephrasing it or asking about a different topic? "
+                "This helps me provide more accurate answers based on the documents I have access to."
+            )
+
+        if flat_distances and flat_distances[0] > DISTANCE_THRESHOLD_DEFAULT:
+            logger.warning(
+                f"Query rejected - low similarity (distance={flat_distances[0]:.3f}, "
+                f"threshold={DISTANCE_THRESHOLD_DEFAULT})"
+            )
+            return False, (
+                "I couldn't find information in my knowledge base that closely matches your question. "
+                "Could you try rephrasing it or asking about a different topic? "
+                "This helps me provide more accurate answers based on the documents I have access to."
+            )
+
+        return True, ""
+
+    @staticmethod
+    def is_vague_incomplete(query: str) -> bool:
+        """
+        Detect if query is vague/incomplete (simple topic name without action verbs).
+
+        Uses pattern-based detection - scalable without hardcoded lists.
+
+        Examples of vague queries:
+        - "psychology"
+        - "human-machine interaction"
+        - "contemporary art"
+        - "quantum cryptography"
+
+        Examples of complete queries:
+        - "Tell me about psychology"
+        - "What is human-machine interaction?"
+        - "Explain contemporary art"
+        - "yes", "no" (have punctuation or are very simple)
+
+        Examples of follow-up responses (NOT prefixed):
+        - Single words that are responses/acknowledgments
+        - Anything with action verbs or questions
+        """
+        query_lower = query.lower().strip()
+
+        # If query has punctuation marks, it's likely a complete thought or response
+        if any(char in query_lower for char in ["?", "!", ".", ","]):
+            return False
+
+        # If query already has action verbs or question markers, it's complete
+        action_phrases = [
+            "tell",
+            "explain",
+            "describe",
+            "show",
+            "give",
+            "provide",
+            "what",
+            "how",
+            "why",
+            "who",
+            "when",
+            "where",
+            "which",
+            "is",
+            "are",
+            "was",
+            "were",
+            "been",
+            "be",
+            "can",
+            "could",
+            "would",
+            "should",
+            "will",
+            "shall",
+            "may",
+            "might",
+            "do",
+            "does",
+            "did",
+            "have",
+            "has",
+            "had",
+        ]
+        if any(phrase in query_lower for phrase in action_phrases):
+            return False
+
+        # If query is a single word, it's likely a response/topic name (not vague)
+        # Don't prefix single words - they're either follow-ups or proper topics
+        word_count = len(query.split())
+        if word_count == 1:
+            return False
+
+        # Multi-word (2-3 words) queries without verbs are vague topic names
+        # Examples: "psychology", "contemporary art", "human-machine interaction"
+        return word_count <= 3
+
+    def add_documents(self, documents: list[str] | list[dict[str, str]]) -> None:
+        """
+        # ...existing code...
         """
         self.vector_db.add_documents(documents)
 
     def invoke(self, query: str, n_results: int = RETRIEVAL_K_DEFAULT) -> str:
         """
-        Query the RAG assistant.
+        Query the RAG assistant with query classification and type-based handling.
 
         Args:
             query: User's input
             n_results: Number of relevant chunks to retrieve
 
         Returns:
-            String answer from the LLM based on retrieved context
+            String answer from the LLM based on retrieved context and query type
         """
-        is_meta_question = any(
-            keyword.lower() in query.lower() for keyword in META_QUESTION_KEYWORDS
-        )
+        # Auto-prefix vague/incomplete queries for better matching
+        original_query = query
+        if self.is_vague_incomplete(query):
+            query = f"Tell me about {query}"
+            logger.info(
+                f"Vague query detected, prefixed: '{original_query}' → '{query}'"
+            )
+
+        # Classify query (priority order: unsafe > vague > meta > document > regular)
+        query_type = self._classify_query(query)
+        logger.debug(f"Query classified as: {query_type.value}")
+
+        # Handle unsafe queries first (hard block before any processing)
+        if query_type == QueryType.UNSAFE:
+            logger.warning(f"Unsafe query blocked: {query}")
+            return "I can't assist with that query. Please ask about topics covered in my knowledge base."
 
         try:
             search_results = self.vector_db.search(query=query, n_results=n_results)
@@ -126,22 +300,18 @@ class RAGAssistant:
             else:
                 flat_distances = distances
 
-        # For meta-questions, use results even with lower similarity
-        # For regular questions, require higher similarity (distance <= threshold)
-        if not is_meta_question and (
-            not flat_docs
-            or (flat_distances and flat_distances[0] > DISTANCE_THRESHOLD_DEFAULT)
-        ):
-            return (
-                "I couldn't find information in my knowledge base that closely matches your question. "
-                "Could you try rephrasing it or asking about a different topic? "
-                "This helps me provide more accurate answers based on the documents I have access to."
-            )
+        # Validate similarity and log results
+        is_valid, rejection_message = self._validate_and_log_similarity(
+            query_type, flat_docs, flat_distances
+        )
+        if not is_valid:
+            return rejection_message
 
         context = "\n".join(flat_docs) if flat_docs else ""
 
         try:
             response = self.chain.invoke({"context": context, "question": query})
+            logger.info(f"Response generated for {query_type.value} question")
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error(f"Error invoking chain: {e}")
             return (

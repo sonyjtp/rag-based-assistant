@@ -190,7 +190,8 @@ class TestRAGAssistantInvoke:
         assistant.chain = MagicMock()
         assistant.chain.invoke.return_value = "Test response"
 
-        response = assistant.invoke("Test query")
+        # Use query with action verb so it won't be auto-prefixed
+        response = assistant.invoke("What is this?")
 
         if has_documents:
             assert response == "Test response"
@@ -211,10 +212,12 @@ class TestRAGAssistantInvoke:
         assistant.chain = MagicMock()
         assistant.chain.invoke.return_value = "Response"
 
-        assistant.invoke("Test query")
+        # Use a query with action verb so it won't be auto-prefixed
+        assistant.invoke("What is AI?")
 
+        # Query should NOT be prefixed since it has "What"
         mock_components["vectordb_instance"].search.assert_called_once_with(
-            query="Test query", n_results=3
+            query="What is AI?", n_results=3
         )
 
     @pytest.mark.parametrize(
@@ -232,10 +235,11 @@ class TestRAGAssistantInvoke:
         assistant.chain = MagicMock()
         assistant.chain.invoke.return_value = "Response"
 
-        assistant.invoke("Test query", n_results=n_results)
+        # Use query with action verb to avoid auto-prefixing
+        assistant.invoke("What about this?", n_results=n_results)
 
         mock_components["vectordb_instance"].search.assert_called_once_with(
-            query="Test query", n_results=n_results
+            query="What about this?", n_results=n_results
         )
 
     def test_invoke_saves_to_memory(self, mock_components):
@@ -249,10 +253,12 @@ class TestRAGAssistantInvoke:
         assistant.chain = MagicMock()
         assistant.chain.invoke.return_value = "Assistant response"
 
-        assistant.invoke("User question")
+        # Use query with action verb to avoid auto-prefixing
+        query = "What is this?"
+        assistant.invoke(query)
 
         mock_components["memory_instance"].add_message.assert_called_once_with(
-            input_text="User question", output_text="Assistant response"
+            input_text=query, output_text="Assistant response"
         )
 
     def test_invoke_low_similarity_rejects_answer(self, mock_components):
@@ -266,7 +272,8 @@ class TestRAGAssistantInvoke:
         assistant = RAGAssistant()
         assistant.chain = MagicMock()
 
-        response = assistant.invoke("Regular question")
+        # Use query with action verb so it's a REGULAR question (not VAGUE/META)
+        response = assistant.invoke("What is this?")
 
         # Should return rejection message, not call chain
         assert "couldn't find information" in response.lower()

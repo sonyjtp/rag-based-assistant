@@ -103,17 +103,6 @@ TEXT_SPLITTER_SEPARATORS = ["\n\n", "\n", ". ", " ", ""]
 RETRIEVAL_K_DEFAULT = 3
 DISTANCE_THRESHOLD_DEFAULT = 0.35  # Maximum distance (lower = higher similarity)
 
-# Meta-question keywords that don't require high document similarity
-META_QUESTION_KEYWORDS = [
-    "what topics",
-    "what do you know",
-    "what can you",
-    "what documents",
-    "what information",
-    "what subjects",
-    "capabilities",
-]
-
 
 # ============================================================================
 # ASSISTANT STRATEGIES & CONFIGURATION FILES
