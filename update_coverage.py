@@ -29,7 +29,6 @@ def get_coverage_from_html(html_file: str = "htmlcov/index.html") -> float | Non
             content = f.read()
 
         # Extract coverage percentage from HTML report
-        # Look for pattern: <span class="pc_cov">91.28%</span>
         match = re.search(r'<span class="pc_cov">(\d+\.?\d*)%', content)
 
         if match:
@@ -62,11 +61,9 @@ def get_coverage_from_xml(xml_file: str = "coverage.xml") -> float | None:
         root = tree.getroot()
 
         # Get line-rate attribute from root element (represents overall line coverage)
-        # line-rate is in decimal format (0.9751 = 97.51%)
         line_rate = root.get("line-rate")
 
         if line_rate:
-            # Convert from decimal (0.9751) to percentage (97.51)
             coverage_percent = float(line_rate) * 100
             return round(coverage_percent, 2)
         else:

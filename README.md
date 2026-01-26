@@ -1,4 +1,4 @@
-# 🤖 RAG-Based AI Assistant - AAIDC Project
+# 🤖 RAG-Based AI Assistant
 
 > A production-ready Retrieval-Augmented Generation (RAG) chatbot that answers questions exclusively from a set of custom documents using LangChain, ChromaDB, and multiple LLM providers.
 
@@ -23,7 +23,6 @@
 - [Usage](#-usage)
 - [Project Architecture](#-project-architecture)
 - [Project Structure](#-project-structure)
-- [Testing](#-testing)
 - [Customization Guide](#-customization-guide)
 - [Memory Management](#-memory-management)
 - [Reasoning Strategies](#-reasoning-strategies)
@@ -37,8 +36,8 @@
 This project implements a **Retrieval-Augmented Generation (RAG)** chatbot that:
 
 - 📚 **Loads custom documents** from your `data/` directory
-- 🔍 **Chunks and embeds** text using advanced text splitting strategies
-- 💾 **Stores vectors** in ChromaDB vector database
+- 🔍 **Chunking**: Split documents into chunks and add metadata.
+- 💾 **Storage**: Store each chunk's embedding (vector), the chunk text, and metadata in ChromaDB for retrieval.
 - 🎤 **Answers questions** exclusively from your documents
 - 🧠 **Maintains conversation** memory across multiple interactions
 - 🔌 **Supports multiple LLMs**: OpenAI, Groq, Google Gemini
@@ -59,30 +58,40 @@ This project implements a **Retrieval-Augmented Generation (RAG)** chatbot that:
 - ✅ Document metadata preservation (title, tags, filename)
 
 ### Memory Management
-- ✅ **Buffer Memory**: Stores full conversation history
-- ✅ **Sliding Window Memory**: Keeps recent messages + summarized history
-- ✅ **Summarization**: Automatic conversation summarization when window fills
-- ✅ **Memory Strategy Switching**: Change strategies on-the-fly
+- ✅ **Buffer Memory** (simple_buffer): Stores full conversation history.
+- ✅ **Sliding Window Memory** (summarization_sliding_window) — default: keeps recent messages plus a running summarized history to stay within token limits.
+- ✅ **Summarization** (summary): Maintains a running summary of the conversation.
+- ✅ **None** (none): Disables conversation memory.
+- ✅ **Memory Strategy Switching**: Change via `MEMORY_STRATEGY` in `src/config.py` or by toggling `enabled` in `config/memory_strategies.yaml`.
 
 ### LLM Integration
 - ✅ **OpenAI GPT-4** / GPT-4o-mini
 - ✅ **Groq Llama 3.1** (fast inference)
 - ✅ **Google Gemini** Pro
 - ✅ Automatic fallback to next available provider
-- ✅ Device detection (CUDA, MPS, CPU)
+- ✅ Device detection & selection — Automatically picks the best available compute device for model inference and embeddings
+
+**Device Detection order**:
+  1. `CUDA` — NVIDIA GPUs (highest performance).
+  2. `MPS` — Apple Metal Performance Shaders on Apple Silicon (macOS).
+  3. `CPU` — Fallback when no GPU acceleration is available.
 
 ### Reasoning Strategies
-- ✅ **Chain-of-Thought**: Step-by-step reasoning
-- ✅ **Tree-of-Thought**: Explores multiple reasoning paths
-- ✅ **Self-Consistent**: Generates multiple outputs and votes
-- ✅ Configurable via YAML
+
+- ✅ **RAG-Enhanced Reasoning** (rag_enhanced_reasoning) — default: Retrieve relevant documents first, then apply reasoning grounded in those documents; `enabled: true`.
+- ✅ **Chain-of-Thought** (chain_of_thought): Step-by-step internal reasoning before the final answer; `enabled: true`.
+- ✅ **Few-Shot Prompting** (few_shot_prompting): Include examples in the prompt to guide format and style; `enabled: true`.
+- ✅ **Structured Prompting** (structured_prompting): Use templates/format specifications for consistent, parseable outputs; `enabled: true`.
+- ✅ **Metacognitive Prompting** (metacognitive_prompting): Reflect on confidence, limitations, and uncertainty; `enabled: true`.
+
+
 
 ### Safety & Quality
 - ✅ **Hallucination Prevention**: Strict prompt constraints
 - ✅ **Input Validation**: Document and query validation
 - ✅ **Error Handling**: Comprehensive exception handling
 - ✅ **Logging**: Detailed logging throughout
-- ✅ **191 Test Cases**: 78% code coverage
+- ✅ **Test Cases**: Code coverage maintained above 85%
 
 ### User Interfaces
 - ✅ **CLI Interface** (`app.py`): Command-line chatbot
@@ -104,8 +113,8 @@ This project implements a **Retrieval-Augmented Generation (RAG)** chatbot that:
 
 ```bash
 # Clone the repository
-git clone https://github.com/sonyjtp/rt-aaidc-rag-based-assistant.git
-cd rt-aaidc-rag-based-assistant
+git clone https://github.com/sonyjtp/rag-based-assistant.git
+cd rag-based-assistant
 
 # Create virtual environment
 python -m venv venv
@@ -178,64 +187,21 @@ pip install -r requirements-dev.txt
 
 # Set up pre-commit hooks for automatic code formatting
 pre-commit install
-
-# Verify installation
-python -c "import langchain; print('✓ LangChain installed')"
-```
-
-### Docker Installation (Optional)
-
-```bash
-# Build Docker image
-docker build -t rag-assistant .
-
-# Run container
-docker run -e OPENAI_API_KEY=your_key -v $(pwd)/data:/app/data rag-assistant
 ```
 
 ---
 
 ## ⚙️ Configuration
 
-### Environment Variables (.env)
+See [Quick Start](#-quick-start) for environment variable setup (`OPENAI_API_KEY`, `GROQ_API_KEY`, `GOOGLE_API_KEY`).
 
-```env
-# LLM Configuration
-OPENAI_API_KEY=sk-...
-GROQ_API_KEY=gsk_...
-GOOGLE_API_KEY=AIzaSy...
+For advanced configuration options, see:
+- `src/config.py` — Core settings (chunk size, embedding model, LLM selection)
+- `config/memory_strategies.yaml` — Memory strategy definitions
+- `config/reasoning_strategies.yaml` — Reasoning approach configurations
+- `config/prompt-config.yaml` — System prompts and safety constraints
 
-# Vector Database
-CHROMA_API_KEY=your_api_key
-CHROMA_TENANT=default
-CHROMA_DATABASE=default
-CHROMA_COLLECTION_NAME=default_collection
-
-```
-
-### Configuration Files
-
-**[config.py](src/config.py)** - Core configuration
-- Document processing: `CHUNK_SIZE_DEFAULT = 500`, `CHUNK_OVERLAP_DEFAULT = 100`
-- Vector database: `VECTOR_DB_EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"`
-- LLM providers: OpenAI, Groq, Google Gemini with priority-based selection
-- All defaults can be overridden via `.env` file
-
-**[config/memory_strategies.yaml](config/memory_strategies.yaml)** - Memory configuration
-- **summarization_sliding_window** (default): Summarizes last N messages
-- **simple_buffer**: Stores recent conversation history
-- **summary**: Maintains running conversation summary
-
-**[config/reasoning_strategies.yaml](config/reasoning_strategies.yaml)** - Reasoning approaches
-- **chain_of_thought** (default): Step-by-step reasoning
-- **self_consistency**: Multiple reasoning paths with consensus
-- **few_shot_prompting**: Provides examples to guide responses
-
-**[config/prompt-config.yaml](config/prompt-config.yaml)** - System prompts
-- Two prompt styles: **candid** (friendly, direct) and **formal** (professional)
-- Comprehensive constraints to prevent hallucination
-- Output formatting rules and meta-question handling
-
+Detailed strategy information is documented in [Memory Management](#-memory-management) and [Reasoning Strategies](#-reasoning-strategies) sections.
 ---
 
 ## 💬 Usage
@@ -671,8 +637,6 @@ REASONING_STRATEGY = "rag_enhanced_reasoning"
 | Token limit exceeded | Reduce `CHUNK_SIZE` or enable memory summarization in config             |
 | Low answer quality   | Increase `RETRIEVAL_K_DEFAULT` to retrieve more documents                |
 | Hallucination issues | Ensure documents are loaded and similarity threshold is set correctly    |
-
-For more help, see [TESTING.md](TESTING.md) and [UI_GUIDE.md](UI_GUIDE.md).
 
 ---
 
