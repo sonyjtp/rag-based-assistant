@@ -24,8 +24,6 @@
 - [Project Architecture](#-project-architecture)
 - [Project Structure](#-project-structure)
 - [Customization Guide](#-customization-guide)
-- [Memory Management](#-memory-management)
-- [Reasoning Strategies](#-reasoning-strategies)
 - [Troubleshooting](#-troubleshooting)
 - [License](#-license)
 
@@ -201,7 +199,6 @@ For advanced configuration options, see:
 - `config/reasoning_strategies.yaml` — Reasoning approach configurations
 - `config/prompt-config.yaml` — System prompts and safety constraints
 
-Detailed strategy information is documented in [Memory Management](#-memory-management) and [Reasoning Strategies](#-reasoning-strategies) sections.
 ---
 
 ## 💬 Usage
@@ -370,78 +367,28 @@ Response to User ✅
 ```
 rag-based-assistant/
 │
-├── src/                          # Source code
-│   ├── app.py                   # CLI interface
-│   ├── streamlit_app.py         # Web UI
-│   ├── rag_assistant.py         # Core RAG logic
-│   ├── vectordb.py              # Vector database wrapper
-│   ├── chroma_client.py         # ChromaDB client
-│   ├── embeddings.py            # Embedding model initialization
-│   ├── llm_utils.py             # LLM provider selection
-│   ├── prompt_builder.py        # Prompt generation
-│   ├── memory_manager.py        # Memory handling
-│   ├── sliding_window_memory.py # Summarization-based memory
-│   ├── simple_buffer_memory.py  # Buffer memory implementation
-│   ├── summary_memory.py        # Summary memory implementation
-│   ├── reasoning_strategy_loader.py  # Reasoning strategies
-│   ├── file_utils.py            # File I/O utilities
-│   ├── config.py                # Configuration
-│   ├── ui_utils.py              # Streamlit UI utilities
-│   └── logger.py                # Logging setup
-│
-├── config/                       # Configuration files
-│   ├── prompt-config.yaml       # System prompts & constraints
-│   ├── memory_strategies.yaml   # Memory strategy configurations
-│   └── reasoning_strategies.yaml # Reasoning strategy definitions
-│
-├── static/                       # Static assets
-│   └── css/
-│       └── styles.css           # Streamlit custom styling
-│
-├── data/                         # Document storage (user documents)
-│   └── *.txt                    # Text documents for RAG
-│
+├── src/                          # Source code modules
+├── config/                       # Configuration YAML files
+├── data/                         # Document storage
 ├── tests/                        # Test suite
-│   ├── conftest.py              # Pytest configuration
-│   ├── fixtures/
-│   │   └── sample_data.py       # Test fixtures & sample data
-│   ├── test_rag_assistant.py
-│   ├── test_prompt_builder.py
-│   ├── test_hallucination_prevention.py
-│   ├── test_memory_manager.py
-│   ├── test_reasoning_strategy.py
-│   ├── test_embeddings.py
-│   ├── test_file_utils.py
-│   ├── test_sliding_window_memory.py
-│   ├── test_buffer_and_summary_memory.py
-│   ├── test_integrations.py
-│   ├── test_ui_utils.py
-│   └── test_app.py
-│
 ├── logs/                         # Application logs
-│   ├── debug.log
-│   └── rag_assistant.log
-│
-├── .github/                      # GitHub configuration
-│   └── workflows/               # CI/CD workflows (optional)
-│
-├── htmlcov/                      # HTML coverage reports (generated)
+├── static/                       # CSS and styling
 │
 ├── requirements.txt              # Production dependencies
 ├── requirements-test.txt         # Testing dependencies
-├── requirements-dev.txt          # Development tools (pre-commit, black, isort, pylint)
+├── requirements-dev.txt          # Development tools
 ├── pytest.ini                    # Pytest configuration
 ├── .pylintrc                     # Pylint configuration
-├── .pre-commit-config.yaml       # Pre-commit hooks configuration
-├── .coveragerc                   # Coverage configuration
-├── .gitignore                    # Git ignore rules
+├── .pre-commit-config.yaml       # Pre-commit hooks
 ├── .env_example                  # Example environment variables
+├── Dockerfile                    # Docker container definition
+├── docker-compose.yml            # Docker Compose setup
 │
-├── update_coverage.py            # Coverage badge update script
-├── TESTING.md                    # Testing guide & instructions
+├── update_coverage.py            # Coverage badge script
 ├── UI_GUIDE.md                   # Streamlit UI guide
 ├── README.md                     # This file
 └── LICENSE                       # License
+```
 ```
 
 ---
@@ -489,8 +436,6 @@ git commit --no-verify  # Skip pre-commit hooks
 ### Coverage Requirements
 
 - **Minimum Coverage**: 90% (enforced by pre-commit hooks)
-- **Target Coverage**: 95%+
-- **Critical Modules**: 100% (rag_assistant, config, reasoning_strategy_loader)
 
 ### Run Specific Tests
 
@@ -540,42 +485,29 @@ Edit `config.py` to change the memory strategy:
 MEMORY_STRATEGY = "summarization_sliding_window"  # Options: summarization_sliding_window, simple_buffer, summary, none
 ```
 
-Available memory strategies (defined in `config/memory_strategies.yaml`):
-- **summarization_sliding_window** (default): Summarizes last N messages using sliding window
-- **simple_buffer**: Stores recent conversation history in a buffer
-- **summary**: Maintains a running summary of the conversation
-- **none**: Disables conversation memory entirely
+See [Features](#-features) section for memory strategy details.
 
 ### Switch LLM Provider
 
 ```bash
 # In .env - set which API key to use
-OPENAI_API_KEY=sk-...    # Uses OpenAI
-# GROQ_API_KEY=...       # Commented out - won't use Groq
-# GOOGLE_API_KEY=...     # Commented out - won't use Google
+OPENAI_API_KEY=...    # Uses OpenAI
 ```
+
+See [Features](#-features) section for LLM provider details.
 
 ### Adjust Document Chunking
 
-```bash
-# In config.py
-CHUNK_SIZE=2000          # Larger chunks
-CHUNK_OVERLAP=400        # More overlap for context
-RETRIEVAL_K=10           # Retrieve more documents
+```python
+# In src/config.py
+CHUNK_SIZE_DEFAULT = 2000          # Larger chunks
+CHUNK_OVERLAP_DEFAULT = 400        # More overlap for context
+RETRIEVAL_K_DEFAULT = 10           # Retrieve more documents
 ```
 
 ### Configure Reasoning Strategy
 
-```yaml
-# In config/reasoning_strategies.yaml
-reasoning_strategies:
-  chain_of_thought:
-    enabled: true
-    instructions: "Think through this step by step..."
-  tree_of_thought:
-    enabled: true
-    instructions: "Explore multiple reasoning paths..."
-```
+See [Customization Guide](#-customization-guide) section for detailed reasoning strategy configuration.
 
 ### Add Custom Prompts
 
@@ -591,42 +523,6 @@ def build_system_prompts():
 
 ---
 
-## 🧠 Memory Management
-
-Three memory strategies are available (configured in [config/memory_strategies.yaml](config/memory_strategies.yaml)):
-
-- **summarization_sliding_window** (default): Summarizes last N messages to stay within token limits
-- **simple_buffer**: Stores recent conversation history without summarization
-- **summary**: Maintains a running summary of the entire conversation
-- **none**: Disables conversation memory
-
-Change the strategy in `src/config.py`:
-```python
-MEMORY_STRATEGY = "summarization_sliding_window"
-```
-
-### Disable Memory
-```bash
-MEMORY_STRATEGY=none
-```
-
----
-
-## 🎯 Reasoning Strategies
-
-Four reasoning strategies are available (configured in [config/reasoning_strategies.yaml](config/reasoning_strategies.yaml)):
-
-- **chain_of_thought** (default): Step-by-step reasoning before final answer
-- **self_consistency**: Multiple reasoning paths with consensus answer
-- **few_shot_prompting**: Provides examples to guide model responses
-- **rag_enhanced_reasoning**: RAG-specific reasoning constraints
-
-Change the strategy in `src/config.py`:
-```python
-REASONING_STRATEGY = "rag_enhanced_reasoning"
-```
-
----
 
 ## ❓ Troubleshooting
 
@@ -696,56 +592,13 @@ All contributions must include:
 
 ---
 
-## 📚 Learning Resources
-
-### RAG Concepts
-- [LangChain RAG Tutorial](https://python.langchain.com/docs/use_cases/question_answering/)
-- [ChromaDB Documentation](https://docs.trychroma.com/)
-- [Vector Databases Explained](https://www.pinecone.io/learn/vector-database/)
-
-### LLM Integration
-- [OpenAI API Docs](https://platform.openai.com/docs/)
-- [Groq API Docs](https://console.groq.com/docs/)
-- [Google Gemini Docs](https://ai.google.dev/docs/)
-
-### Advanced Topics
-- [Prompt Engineering](https://platform.openai.com/docs/guides/prompt-engineering)
-- [Retrieval Strategies](https://arxiv.org/abs/2312.10997)
-- [LLM Evaluation](https://github.com/openlifeScienceAI/ragger)
-
----
-
 ## 📄 License
 
-This project is licensed under the **Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License** (CC BY-NC-SA 4.0) - see [LICENSE](LICENSE) file for details.
+This project is licensed under **CC BY-NC-SA 4.0** (Creative Commons Attribution-NonCommercial-ShareAlike 4.0).
 
-**Key Points**:
-- ✅ **Attribution**: You must credit the original authors
-- ✅ **Share-Alike**: Any modifications must use the same license
-- ❌ **Non-Commercial**: Cannot be used for commercial purposes
-- ✅ **Modification**: You can modify the code
+**Summary**: Attribution required • Non-commercial only • Modifications must use same license
 
-**What you CAN do**:
-- Use for educational purposes
-- Use in academic projects
-- Use in non-commercial research
-- Modify for personal use
-- Share modifications (with same license)
-
-**What you CANNOT do**:
-- ❌ Use commercially
-- ❌ Sell the software
-- ❌ Use in commercial products
-- ❌ Change the license
-
-For the full license text, see [LICENSE](LICENSE) file.
-
-```
-Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License
-
-This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
-To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/4.0/
-```
+See [LICENSE](LICENSE) file for full details.
 
 ---
 
@@ -755,6 +608,5 @@ To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-
 
 ---
 
-
 **Last Updated**: January 2026
-**Status**:  🛠️ Under Active Development
+**Status**: 🛠️ Under Active Development
