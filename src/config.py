@@ -95,6 +95,8 @@ COLLECTION_NAME_DEFAULT = "rag_documents"
 # Embedding Model
 VECTOR_DB_EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"
 
+PUNCTUATION_CHARS = ".,;:!? "
+
 
 # ============================================================================
 # DOCUMENT PROCESSING

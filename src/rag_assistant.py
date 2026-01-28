@@ -82,7 +82,12 @@ class RAGAssistant:
             self.reasoning_strategy = None
 
     def _build_chain(self) -> None:
-        """Build the prompt template and LLM chain."""
+        """Build the prompt template and LLM chain.
+        Steps:
+        1. Build system prompts
+        2. Create prompt template
+        3. Combine prompt template, LLM, and output parser into a chain
+        """
         if not self.llm:
             logger.warning("LLM not initialized. Skipping chain building.")
             return

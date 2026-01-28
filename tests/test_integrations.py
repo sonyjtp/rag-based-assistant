@@ -247,6 +247,43 @@ class TestLLMInitialization:
 class TestVectorDBCore:
     """Test VectorDB initialization, chunking, and document operations."""
 
+    def test_standardize_document_string(self):
+        """Test standardize_document with string input."""
+        doc = "This is a test document"
+        result = VectorDB.standardize_document(doc)
+
+        assert isinstance(result, dict)
+        assert result["content"] == doc
+        assert result["title"] == ""
+        assert result["filename"] == ""
+        assert result["tags"] == ""
+
+    def test_standardize_document_dict(self):
+        """Test standardize_document with dictionary input."""
+        doc = {
+            "content": "Test content",
+            "title": "Test Title",
+            "filename": "test.txt",
+            "tags": "test, document",
+        }
+        result = VectorDB.standardize_document(doc)
+
+        assert isinstance(result, dict)
+        assert result["content"] == "Test content"
+        assert result["title"] == "Test Title"
+        assert result["filename"] == "test.txt"
+        # Tags should be formatted by format_tags function
+
+    def test_standardize_document_dict_missing_keys(self):
+        """Test standardize_document with incomplete dictionary."""
+        doc = {"content": "Test content"}
+        result = VectorDB.standardize_document(doc)
+
+        assert result["content"] == "Test content"
+        assert result["title"] == ""
+        assert result["filename"] == ""
+        assert result["tags"] == ""
+
     @patch("src.vectordb.ChromaDBClient")
     @patch("src.vectordb.initialize_embedding_model")
     def test_vectordb_init(self, mock_embedding, mock_chroma):
@@ -375,8 +412,9 @@ class TestVectorDBCore:
     @patch("src.vectordb.ChromaDBClient")
     @patch("src.vectordb.initialize_embedding_model")
     def test_filter_duplicate_chunks(self, mock_embedding, mock_chroma):
-        """Test filtering duplicate chunks."""
+        """Test filtering duplicate chunks with punctuation normalization."""
         mock_collection = MagicMock()
+        # Existing docs are stored with normalized punctuation
         mock_collection.get.return_value = {"documents": ["existing doc"]}
         mock_chroma.return_value.get_or_create_collection.return_value = mock_collection
         mock_embedding_model = MagicMock()
@@ -385,16 +423,20 @@ class TestVectorDBCore:
 
         vdb = VectorDB()
 
-        # Test deduplication
+        # Test deduplication with punctuation variations
         chunks = [
             ("new chunk 1", {"title": "T1"}),
-            ("existing doc", {"title": "T2"}),
+            ("...existing doc", {"title": "T2"}),  # Will normalize to "existing doc"
             ("new chunk 1", {"title": "T3"}),  # Duplicate in batch
+            (
+                "!new chunk 1",
+                {"title": "T4"},
+            ),  # Will normalize to "new chunk 1" (duplicate)
         ]
 
         filtered = vdb._filter_duplicate_chunks(chunks)
 
-        # Should have 1 chunk (existing removed, duplicate in batch removed)
+        # Should have 1 chunk (existing removed, duplicates in batch removed)
         assert len(filtered) == 1
         assert filtered[0][0] == "new chunk 1"
 

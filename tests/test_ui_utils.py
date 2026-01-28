@@ -321,7 +321,7 @@ class TestGetValidTopicsFromDocuments:
     ):
         """Test that exceptions during directory reading are handled gracefully."""
         mock_isdir.return_value = True
-        mock_listdir.side_effect = Exception("Permission denied")
+        mock_listdir.side_effect = PermissionError("Permission denied")
 
         result = _get_valid_topics_from_documents()
 

@@ -37,6 +37,9 @@ if not st.session_state.initialization_attempted:
 
         # Initialize the RAG assistant
         st.session_state.assistant = RAGAssistant()
+        logger.info("RAG Assistant initialized")
+
+        # Add documents to the RAG assistant's vector DB
         st.session_state.assistant.add_documents(documents)
         st.session_state.documents_loaded = True
         st.session_state.initialized = True

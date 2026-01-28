@@ -26,6 +26,8 @@ def main():
         # Initialize the RAG assistant
         assistant = RAGAssistant()
         logger.info("RAG Assistant initialized")
+
+        # Add documents to the RAG assistant's vector DB
         assistant.add_documents(documents)
         done = False
         while not done:

@@ -317,7 +317,9 @@ class TestCreatePromptTemplate:
             (["Prompt 1", "Prompt 2", "Prompt 3"], 3),
         ],
     )
-    def test_multiple_system_prompts(self, system_prompts, expected_count):
+    def test_multiple_system_prompts(
+        self, system_prompts, expected_count
+    ):  # pylint: disable=unused-argument
         """Test that multiple system prompts are joined correctly."""
         template = create_prompt_template(system_prompts)
 

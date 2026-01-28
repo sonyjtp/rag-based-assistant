@@ -4,10 +4,12 @@ import re
 
 import streamlit as st
 
-from config import DATA_DIR
+from config import DATA_DIR, DOCUMENT_TYPES
 
 
-def _get_valid_topics_from_documents() -> set[str]:
+def _get_valid_topics_from_documents(
+    file_extensions: str | tuple[str, ...] = DOCUMENT_TYPES
+) -> set[str]:
     """
     Extract valid topic names from the data directory document filenames.
 
@@ -21,11 +23,11 @@ def _get_valid_topics_from_documents() -> set[str]:
     try:
         if os.path.isdir(DATA_DIR):
             for filename in os.listdir(DATA_DIR):
-                if filename.endswith(".txt"):
-                    # Remove .txt extension and replace underscores with spaces
+                if filename.endswith(file_extensions):
+                    # Remove extension and replace underscores with spaces
                     topic_name = filename[:-4].replace("_", " ")
                     valid_topics.add(topic_name.lower())
-    except Exception:
+    except (PermissionError, OSError):
         # If we can't read the directory, return empty set
         # The validation will be skipped gracefully
         pass
