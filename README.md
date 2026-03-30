@@ -922,4 +922,4 @@ See [LICENSE](LICENSE) file for full details.
 ---
 
 **Last Updated**: February 2026
-**Status**: 🚀 Active Maintenance"
+**Status**: 🚀 Active Maintenance
