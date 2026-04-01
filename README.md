@@ -886,8 +886,7 @@ This project includes comprehensive documentation for different aspects:
 
 ### Get Help
 - **Issues & Bug Reports**: [GitHub Issues](https://github.com/sonyjtp/rag-based-assistant/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/sonyjtp/rag-based-assistant/discussions)
-- **Email**: sony.jacob.thomas@example.com
+- **Email**: thomassonyjacob@gmail.com
 
 ### Creator
 **Sony Jacob Thomas**
